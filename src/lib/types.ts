@@ -3,6 +3,7 @@ export type MasterExpense = {
   name: string;
   amount: number;
   platform: string;
+  dueDate: number;
 };
 
 export type MonthlyExpenseState = {
@@ -22,7 +23,10 @@ export type ExpenseSummary = {
   total: number;
   completedAmount: number;
   progress: number;
-... 2 more lines
+  remaining: number;
+}
+
+export type PlatformSummaryData = {
   [platform: string]: number;
 }
 

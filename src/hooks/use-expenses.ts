@@ -9,10 +9,10 @@ const MASTER_KEY = 'rutin-tracker-master';
 const MONTHLY_KEY_PREFIX = 'rutin-tracker-monthly-';
 
 const initialMasterData: MasterExpense[] = [
-  { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA' },
-  { id: '2', name: 'Internet & TV Kabel', amount: 350000, platform: 'Bank Jago' },
-  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000, platform: 'BCA' },
-  { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay' },
+  { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA', dueDate: 20 },
+  { id: '2', name: 'Internet & TV Kabel', amount: 350000, platform: 'Bank Jago', dueDate: 5 },
+  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000, platform: 'BCA', dueDate: 1 },
+  { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay', dueDate: 15 },
 ];
 
 export const useExpenses = () => {
@@ -93,8 +93,8 @@ export const useExpenses = () => {
     });
   }, []);
 
-  const addExpense = useCallback((name: string, amount: number, platform: string) => {
-    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform };
+  const addExpense = useCallback((name: string, amount: number, platform: string, dueDate: number) => {
+    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform, dueDate };
     const newMaster = [...masterExpenses, newExpense];
     updateMasterAndSave(newMaster);
 
@@ -213,7 +213,8 @@ export const useExpenses = () => {
       const monthlyState = monthlyData?.expenses.find(m => m.id === masterExp.id);
       return { ...masterExp, ...monthlyState };
     })
-    .filter((exp): exp is DisplayExpense => exp.id !== undefined && exp.completed !== undefined && exp.skipped !== undefined);
+    .filter((exp): exp is DisplayExpense => exp.id !== undefined && exp.completed !== undefined && exp.skipped !== undefined)
+    .sort((a, b) => a.dueDate - b.dueDate);
 
   const summary: ExpenseSummary = expenses.reduce((acc, exp) => {
     if (exp.skipped) return acc;

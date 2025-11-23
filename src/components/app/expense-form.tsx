@@ -45,6 +45,7 @@ const formSchema = (platforms: string[]) => z.object({
   }).refine(val => platforms.includes(val), {
     message: "Platform tidak valid."
   }),
+  dueDate: z.coerce.number().min(1, "Tanggal harus antara 1-31").max(31, "Tanggal harus antara 1-31"),
 });
 
 
@@ -54,8 +55,8 @@ type ExpenseFormProps = {
   mode: 'add' | 'edit';
   expense?: DisplayExpense;
   platforms: Platform[];
-  onAddExpense: (name: string, amount: number, platform: string) => void;
-  onEditExpense: (id: string, name: string, amount: number, platform: string) => void;
+  onAddExpense: (name: string, amount: number, platform: string, dueDate: number) => void;
+  onEditExpense: (id: string, name: string, amount: number, platform: string, dueDate: number) => void;
 };
 
 export function ExpenseForm({
@@ -75,6 +76,7 @@ export function ExpenseForm({
     defaultValues: {
       name: "",
       amount: "0",
+      dueDate: new Date().getDate(),
     },
   });
 
@@ -84,18 +86,19 @@ export function ExpenseForm({
         name: expense.name,
         amount: formatCurrencyInput(expense.amount),
         platform: expense.platform,
+        dueDate: expense.dueDate,
       });
     } else if (isOpen && mode === 'add') {
-      form.reset({ name: "", amount: "0", platform: undefined });
+      form.reset({ name: "", amount: "0", platform: undefined, dueDate: new Date().getDate() });
     }
   }, [isOpen, mode, expense, form]);
 
   function onSubmit(values: z.infer<typeof currentFormSchema>) {
     const amount = parseCurrencyInput(values.amount);
     if (mode === 'add') {
-      onAddExpense(values.name, amount, values.platform);
+      onAddExpense(values.name, amount, values.platform, values.dueDate);
     } else if (mode === 'edit' && expense) {
-      onEditExpense(expense.id, values.name, amount, values.platform);
+      onEditExpense(expense.id, values.name, amount, values.platform, values.dueDate);
     }
     onOpenChange(false);
   }
@@ -131,24 +134,39 @@ export function ExpenseForm({
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Jumlah (Rp)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Contoh: 350.000" 
-                        {...field} 
-                        onChange={handleAmountChange}
-                        inputMode="numeric"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Jumlah (Rp)</FormLabel>
+                        <FormControl>
+                        <Input 
+                            placeholder="Contoh: 350.000" 
+                            {...field} 
+                            onChange={handleAmountChange}
+                            inputMode="numeric"
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="dueDate"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Tgl Bayar</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" max="31" placeholder="1-31" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="platform"

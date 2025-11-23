@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreVertical, EyeOff, Trash2, Pencil } from "lucide-react";
+import { MoreVertical, EyeOff, Trash2, Pencil, CalendarDays } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 
 type ExpenseItemProps = {
@@ -40,15 +40,23 @@ export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete, onEdi
             aria-label={`Mark ${expense.name} as ${expense.completed ? 'not completed' : 'completed'}`}
           />
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 items-center gap-x-4 gap-y-1">
-            <label 
-              htmlFor={`expense-${expense.id}`}
-              className={cn(
-                "font-medium cursor-pointer transition-all col-span-1",
-                expense.completed ? "line-through text-muted-foreground" : "text-foreground"
-              )}
-            >
-              {expense.name}
-            </label>
+            <div className='flex items-center gap-2'>
+              <div className={cn("flex items-center justify-center h-8 w-8 rounded-md shrink-0", expense.completed ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
+                  <div className='flex flex-col items-center leading-none'>
+                      <span className='text-[0.6rem] font-medium'>TGL</span>
+                      <span className='font-bold text-sm'>{expense.dueDate}</span>
+                  </div>
+              </div>
+              <label 
+                htmlFor={`expense-${expense.id}`}
+                className={cn(
+                  "font-medium cursor-pointer transition-all col-span-1",
+                  expense.completed ? "line-through text-muted-foreground" : "text-foreground"
+                )}
+              >
+                {expense.name}
+              </label>
+            </div>
             <div className="flex items-center gap-2 justify-start sm:justify-end col-span-1">
                 <Badge variant="outline" className={cn(
                     "py-0.5 px-1.5 text-xs font-mono",

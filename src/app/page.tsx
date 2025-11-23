@@ -83,12 +83,12 @@ export default function Home() {
           mode={formState.mode}
           expense={formState.expense}
           platforms={platforms}
-          onAddExpense={(name, amount, platform) => {
-            addExpense(name, amount, platform);
+          onAddExpense={(name, amount, platform, dueDate) => {
+            addExpense(name, amount, platform, dueDate);
             handleCloseForm();
           }}
-          onEditExpense={(id, name, amount, platform) => {
-            updateExpense(id, { name, amount, platform });
+          onEditExpense={(id, name, amount, platform, dueDate) => {
+            updateExpense(id, { name, amount, platform, dueDate });
             handleCloseForm();
           }}
         />
