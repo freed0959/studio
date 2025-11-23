@@ -8,10 +8,10 @@ const MASTER_KEY = 'rutin-tracker-master';
 const MONTHLY_KEY = 'rutin-tracker-monthly';
 
 const initialMasterData: MasterExpense[] = [
-  { id: '1', name: 'Listrik & Air', amount: 300000 },
-  { id: '2', name: 'Internet & TV Kabel', amount: 350000 },
-  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000 },
-  { id: '4', name: 'Langganan Streaming', amount: 150000 },
+  { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA' },
+  { id: '2', name: 'Internet & TV Kabel', amount: 350000, platform: 'Bank Jago' },
+  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000, platform: 'BCA' },
+  { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay' },
 ];
 
 export const useExpenses = () => {
@@ -73,8 +73,8 @@ export const useExpenses = () => {
     localStorage.setItem(MONTHLY_KEY, JSON.stringify(newMonthly));
   }, []);
 
-  const addExpense = useCallback((name: string, amount: number) => {
-    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount };
+  const addExpense = useCallback((name: string, amount: number, platform: string) => {
+    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform };
     const newMaster = [...masterExpenses, newExpense];
     updateMasterAndSave(newMaster);
 
@@ -136,6 +136,40 @@ export const useExpenses = () => {
         variant: "destructive",
     });
   }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast]);
+
+  // Sync master and monthly data if there is a mismatch
+  useEffect(() => {
+    if (loading || !monthlyData) return;
+
+    const masterIds = new Set(masterExpenses.map(e => e.id));
+    const monthlyIds = new Set(monthlyData.expenses.map(e => e.id));
+
+    let needsUpdate = false;
+    const newMonthlyExpenses = [...monthlyData.expenses];
+
+    // Add new master expenses to monthly
+    for (const masterExp of masterExpenses) {
+      if (!monthlyIds.has(masterExp.id)) {
+        newMonthlyExpenses.push({
+          id: masterExp.id,
+          completed: false,
+          skipped: false,
+        });
+        needsUpdate = true;
+      }
+    }
+
+    // Remove deleted master expenses from monthly
+    const filteredMonthlyExpenses = newMonthlyExpenses.filter(exp => masterIds.has(exp.id));
+    if (filteredMonthlyExpenses.length !== newMonthlyExpenses.length) {
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      updateMonthlyAndSave({ ...monthlyData, expenses: filteredMonthlyExpenses });
+    }
+
+  }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave]);
 
   const expenses: DisplayExpense[] = masterExpenses
     .map(masterExp => {

@@ -2,6 +2,7 @@ export type MasterExpense = {
   id: string;
   name: string;
   amount: number;
+  platform: string;
 };
 
 export type MonthlyExpenseState = {

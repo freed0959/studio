@@ -22,6 +22,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+
+const platforms = ["Bibit", "Bank Jago", "Dana", "Gopay", "BCA", "Cash"] as const;
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -30,12 +39,15 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({
     message: "Jumlah harus lebih dari 0.",
   }),
+  platform: z.enum(platforms, {
+    required_error: "Platform harus dipilih.",
+  }),
 });
 
 type AddExpenseFormProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onAddExpense: (name: string, amount: number) => void;
+  onAddExpense: (name: string, amount: number, platform: string) => void;
 };
 
 export function AddExpenseForm({
@@ -52,7 +64,7 @@ export function AddExpenseForm({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onAddExpense(values.name, values.amount);
+    onAddExpense(values.name, values.amount, values.platform);
     form.reset();
   }
 
@@ -66,7 +78,7 @@ export function AddExpenseForm({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid gap-4 py-4">
               <FormField
                 control={form.control}
@@ -90,6 +102,26 @@ export function AddExpenseForm({
                     <FormControl>
                       <Input type="number" placeholder="Contoh: 350000" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="platform"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Platform</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih platform pembayaran" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

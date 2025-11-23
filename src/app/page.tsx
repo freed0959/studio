@@ -33,9 +33,9 @@ export default function Home() {
           </div>
           <Skeleton className="h-28 w-full mb-6" />
           <div className="space-y-4">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
           </div>
         </main>
       </div>
@@ -50,8 +50,8 @@ export default function Home() {
         <AddExpenseForm 
           isOpen={isAddOpen} 
           onOpenChange={setIsAddOpen}
-          onAddExpense={(name, amount) => {
-            addExpense(name, amount);
+          onAddExpense={(name, amount, platform) => {
+            addExpense(name, amount, platform);
             setIsAddOpen(false);
           }}
         />
