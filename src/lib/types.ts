@@ -24,3 +24,7 @@ export type ExpenseSummary = {
   progress: number;
   remaining: number;
 }
+
+export type PlatformSummaryData = {
+  [platform: string]: number;
+}

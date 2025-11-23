@@ -3,7 +3,7 @@
 import type { DisplayExpense } from "@/lib/types";
 import { ExpenseItem } from "./expense-item";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, ListTodo } from "lucide-react";
 
 type ExpenseListProps = {
   expenses: DisplayExpense[];
@@ -18,10 +18,13 @@ export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete }: Ex
   const completedExpenses = visibleExpenses.filter(exp => exp.completed);
 
   return (
-    <div className="space-y-4">
+    <div className="mt-6 space-y-4">
       {todoExpenses.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold font-headline mb-3 text-muted-foreground">Belum Selesai</h2>
+          <h2 className="text-lg font-semibold font-headline mb-3 text-muted-foreground flex items-center gap-2">
+            <ListTodo className="h-5 w-5" />
+            Belum Selesai
+          </h2>
           <div className="space-y-2">
             {todoExpenses.map(expense => (
               <ExpenseItem 

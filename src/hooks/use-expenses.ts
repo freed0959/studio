@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState } from '@/lib/types';
+import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData } from '@/lib/types';
 import { useToast } from './use-toast';
 
 const MASTER_KEY = 'rutin-tracker-master';
@@ -190,5 +190,17 @@ export const useExpenses = () => {
   summary.progress = summary.total > 0 ? (summary.completedAmount / summary.total) * 100 : 0;
   summary.remaining = summary.total - summary.completedAmount;
 
-  return { expenses, summary, addExpense, toggleComplete, skipForMonth, deletePermanently, loading };
+  const platformSummary: PlatformSummaryData = expenses
+    .filter(exp => !exp.skipped)
+    .reduce((acc, exp) => {
+        const platform = exp.platform;
+        if (!acc[platform]) {
+            acc[platform] = 0;
+        }
+        acc[platform] += exp.amount;
+        return acc;
+    }, {} as PlatformSummaryData);
+
+
+  return { expenses, summary, platformSummary, addExpense, toggleComplete, skipForMonth, deletePermanently, loading };
 };

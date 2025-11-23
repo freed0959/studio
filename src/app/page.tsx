@@ -10,11 +10,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PlatformSummary } from '@/components/app/platform-summary';
 
 export default function Home() {
   const { 
     expenses, 
-    summary, 
+    summary,
+    platformSummary,
     addExpense, 
     toggleComplete, 
     skipForMonth, 
@@ -32,6 +34,7 @@ export default function Home() {
             <Skeleton className="h-10 w-24" />
           </div>
           <Skeleton className="h-28 w-full mb-6" />
+          <Skeleton className="h-40 w-full mb-6" />
           <div className="space-y-4">
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-16 w-full" />
@@ -59,6 +62,7 @@ export default function Home() {
         {expenses.length > 0 ? (
           <>
             <ProgressSummary summary={summary} />
+            <PlatformSummary platformSummary={platformSummary} />
             <ExpenseList 
               expenses={expenses}
               onToggleComplete={toggleComplete}
