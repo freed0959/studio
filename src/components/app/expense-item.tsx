@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreVertical, EyeOff, Trash2, Pencil, CalendarDays } from "lucide-react";
+import { MoreVertical, EyeOff, Trash2, Pencil, CalendarDays, Repeat, Repeat1 } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 import { differenceInDays, startOfDay, parseISO } from 'date-fns';
 
@@ -69,15 +69,23 @@ export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, o
                       <span className='font-bold text-sm'>{expense.dueDate}</span>
                   </div>
               </div>
-              <label 
-                htmlFor={`expense-${expense.id}`}
-                className={cn(
-                  "font-medium cursor-pointer transition-all col-span-1",
-                  expense.completed ? "line-through text-muted-foreground" : "text-foreground"
+              <div className="flex flex-col">
+                <label 
+                  htmlFor={`expense-${expense.id}`}
+                  className={cn(
+                    "font-medium cursor-pointer transition-all col-span-1",
+                    expense.completed ? "line-through text-muted-foreground" : "text-foreground"
+                  )}
+                >
+                  {expense.name}
+                </label>
+                {expense.recurrence.type === 'specific' && (
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Repeat1 className="h-3 w-3" />
+                    <p className="text-xs">Bulan tertentu</p>
+                  </div>
                 )}
-              >
-                {expense.name}
-              </label>
+              </div>
             </div>
             <div className="flex items-center gap-2 justify-start sm:justify-end col-span-1">
                 <Badge variant="outline" className={cn(

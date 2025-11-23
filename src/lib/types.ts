@@ -1,9 +1,14 @@
+export type Recurrence = 
+  | { type: 'monthly' }
+  | { type: 'specific', months: number[] }; // 1 for Jan, 12 for Dec
+
 export type MasterExpense = {
   id: string;
   name: string;
   amount: number;
   platform: string;
   dueDate: number;
+  recurrence: Recurrence;
 };
 
 export type MonthlyExpenseState = {

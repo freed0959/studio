@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { addMonths, subMonths, format } from 'date-fns';
-import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData } from '@/lib/types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { addMonths, subMonths, format, getMonth } from 'date-fns';
+import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence } from '@/lib/types';
 import { useToast } from './use-toast';
 
 const MASTER_KEY = 'rutin-tracker-master';
 const MONTHLY_KEY_PREFIX = 'rutin-tracker-monthly-';
 
 const initialMasterData: MasterExpense[] = [
-  { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA', dueDate: 20 },
-  { id: '2', name: 'Internet & TV Kabel', amount: 350000, platform: 'Bank Jago', dueDate: 5 },
-  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000, platform: 'BCA', dueDate: 1 },
-  { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay', dueDate: 15 },
+  { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA', dueDate: 20, recurrence: { type: 'monthly' } },
+  { id: '2', name: 'Internet & TV Kabel', amount: 350000, platform: 'Bank Jago', dueDate: 5, recurrence: { type: 'monthly' } },
+  { id: '3', name: 'Uang Kost / Kontrakan', amount: 1500000, platform: 'BCA', dueDate: 1, recurrence: { type: 'monthly' } },
+  { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay', dueDate: 15, recurrence: { type: 'monthly' } },
 ];
 
 export const useExpenses = () => {
@@ -22,11 +22,25 @@ export const useExpenses = () => {
   const [currentMonth, setCurrentMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const { toast } = useToast();
 
+  const currentMonthDate = useMemo(() => new Date(currentMonth + '-15'), [currentMonth]);
+  const currentMonthNumber = useMemo(() => getMonth(currentMonthDate) + 1, [currentMonthDate]);
+
+
+  const migrateMasterData = (data: any[]): MasterExpense[] => {
+    return data.map(exp => {
+      if (!exp.recurrence) {
+        return { ...exp, recurrence: { type: 'monthly' } };
+      }
+      return exp;
+    });
+  };
+
   useEffect(() => {
     setLoading(true);
     try {
       const storedMaster = localStorage.getItem(MASTER_KEY);
-      const initialMaster = storedMaster ? JSON.parse(storedMaster) : initialMasterData;
+      const rawMaster = storedMaster ? JSON.parse(storedMaster) : initialMasterData;
+      const initialMaster = migrateMasterData(rawMaster);
       setMasterExpenses(initialMaster);
 
       const monthKey = `${MONTHLY_KEY_PREFIX}${currentMonth}`;
@@ -37,7 +51,6 @@ export const useExpenses = () => {
       if (monthlyForMonth) {
         setMonthlyData(monthlyForMonth);
       } else {
-        // New month or first load for this month
         const newMonthlyData: MonthlyData = {
           month: currentMonth,
           expenses: initialMaster.map((exp: MasterExpense) => ({
@@ -51,15 +64,16 @@ export const useExpenses = () => {
       }
       
       if (!storedMaster) {
-        localStorage.setItem(MASTER_KEY, JSON.stringify(initialMasterData));
+        localStorage.setItem(MASTER_KEY, JSON.stringify(initialMaster));
       }
 
     } catch (error) {
       console.error("Failed to access localStorage:", error);
-      setMasterExpenses(initialMasterData);
+      const initialMaster = migrateMasterData(initialMasterData);
+      setMasterExpenses(initialMaster);
       setMonthlyData({
           month: currentMonth,
-          expenses: initialMasterData.map(exp => ({ id: exp.id, completed: false, skipped: false }))
+          expenses: initialMaster.map(exp => ({ id: exp.id, completed: false, skipped: false }))
       });
     } finally {
       setLoading(false);
@@ -93,12 +107,15 @@ export const useExpenses = () => {
     });
   }, []);
 
-  const addExpense = useCallback((name: string, amount: number, platform: string, dueDate: number) => {
-    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform, dueDate };
+  const addExpense = useCallback((name: string, amount: number, platform: string, dueDate: number, recurrence: Recurrence) => {
+    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform, dueDate, recurrence };
     const newMaster = [...masterExpenses, newExpense];
     updateMasterAndSave(newMaster);
 
-    if (monthlyData) {
+    // Only add to current monthly data if it's supposed to appear this month
+    const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentMonthNumber));
+
+    if (monthlyData && shouldAppearThisMonth) {
       const newMonthlyState: MonthlyExpenseState = { id: newExpense.id, completed: false, skipped: false };
       const newMonthlyData: MonthlyData = {
         ...monthlyData,
@@ -110,7 +127,7 @@ export const useExpenses = () => {
         title: "Sukses!",
         description: `Pengeluaran "${name}" telah ditambahkan.`,
     });
-  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast]);
+  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast, currentMonthNumber]);
 
   const updateExpense = useCallback((id: string, updatedData: Partial<Omit<MasterExpense, 'id'>>) => {
     let updatedName = '';
@@ -187,12 +204,17 @@ export const useExpenses = () => {
     // Add new master expenses to monthly for the current month
     for (const masterExp of masterExpenses) {
       if (!monthlyIds.has(masterExp.id)) {
-        newMonthlyExpenses.push({
-          id: masterExp.id,
-          completed: false,
-          skipped: false,
-        });
-        needsUpdate = true;
+        const { recurrence } = masterExp;
+        const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentMonthNumber));
+
+        if (shouldAppearThisMonth) {
+            newMonthlyExpenses.push({
+                id: masterExp.id,
+                completed: false,
+                skipped: false,
+            });
+            needsUpdate = true;
+        }
       }
     }
 
@@ -206,9 +228,16 @@ export const useExpenses = () => {
       updateMonthlyAndSave({ ...monthlyData, expenses: filteredMonthlyExpenses });
     }
 
-  }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave]);
+  }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave, currentMonthNumber]);
 
   const expenses: DisplayExpense[] = masterExpenses
+    .filter(masterExp => {
+        const { recurrence } = masterExp;
+        if (recurrence.type === 'specific') {
+            return recurrence.months.includes(currentMonthNumber);
+        }
+        return true; // 'monthly' expenses always included
+    })
     .map(masterExp => {
       const monthlyState = monthlyData?.expenses.find(m => m.id === masterExp.id);
       return { ...masterExp, ...monthlyState };

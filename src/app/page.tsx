@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
-import type { DisplayExpense } from '@/lib/types';
+import type { DisplayExpense, Recurrence } from '@/lib/types';
 
 export default function Home() {
   const { 
@@ -82,12 +82,12 @@ export default function Home() {
           mode={formState.mode}
           expense={formState.expense}
           platforms={platforms}
-          onAddExpense={(name, amount, platform, dueDate) => {
-            addExpense(name, amount, platform, dueDate);
+          onAddExpense={(name, amount, platform, dueDate, recurrence) => {
+            addExpense(name, amount, platform, dueDate, recurrence);
             handleCloseForm();
           }}
-          onEditExpense={(id, name, amount, platform, dueDate) => {
-            updateExpense(id, { name, amount, platform, dueDate });
+          onEditExpense={(id, name, amount, platform, dueDate, recurrence) => {
+            updateExpense(id, { name, amount, platform, dueDate, recurrence });
             handleCloseForm();
           }}
         />
