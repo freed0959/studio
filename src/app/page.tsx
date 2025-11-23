@@ -108,6 +108,7 @@ export default function Home() {
             <PlatformSummary platformSummary={platformSummary} />
             <ExpenseList 
               expenses={expenses}
+              currentMonth={currentMonth}
               onToggleComplete={toggleComplete}
               onSkip={skipForMonth}
               onDelete={deletePermanently}

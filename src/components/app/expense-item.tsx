@@ -10,17 +10,35 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MoreVertical, EyeOff, Trash2, Pencil, CalendarDays } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
+import { differenceInDays, startOfDay, parseISO } from 'date-fns';
 
 type ExpenseItemProps = {
   expense: DisplayExpense;
+  currentMonth: string;
   onToggleComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (expense: DisplayExpense) => void;
 };
 
-export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseItemProps) {
+export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const getDueDateStatus = () => {
+    if (expense.completed) {
+      return "default";
+    }
+    const today = startOfDay(new Date());
+    const dueDate = parseISO(`${currentMonth}-${String(expense.dueDate).padStart(2, '0')}`);
+    const daysUntilDue = differenceInDays(dueDate, today);
+
+    if (daysUntilDue <= 1) { // Today or tomorrow
+      return "urgent";
+    }
+    return "default";
+  };
+  
+  const dueDateStatus = getDueDateStatus();
 
   return (
     <>
@@ -41,7 +59,11 @@ export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete, onEdi
           />
           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 items-center gap-x-4 gap-y-1">
             <div className='flex items-center gap-2'>
-              <div className={cn("flex items-center justify-center h-8 w-8 rounded-md shrink-0", expense.completed ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
+              <div className={cn("flex items-center justify-center h-8 w-8 rounded-md shrink-0 transition-colors", 
+                  expense.completed ? "bg-muted text-muted-foreground" : 
+                  dueDateStatus === 'urgent' ? "bg-destructive/10 text-destructive" :
+                  "bg-primary/10 text-primary"
+              )}>
                   <div className='flex flex-col items-center leading-none'>
                       <span className='text-[0.6rem] font-medium'>TGL</span>
                       <span className='font-bold text-sm'>{expense.dueDate}</span>

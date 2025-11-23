@@ -7,13 +7,14 @@ import { CheckCircle2, ListTodo } from "lucide-react";
 
 type ExpenseListProps = {
   expenses: DisplayExpense[];
+  currentMonth: string;
   onToggleComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (expense: DisplayExpense) => void;
 };
 
-export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseListProps) {
+export function ExpenseList({ expenses, currentMonth, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseListProps) {
   const visibleExpenses = expenses.filter(exp => !exp.skipped);
   const todoExpenses = visibleExpenses.filter(exp => !exp.completed);
   const completedExpenses = visibleExpenses.filter(exp => exp.completed);
@@ -31,6 +32,7 @@ export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete, onEd
               <ExpenseItem 
                 key={expense.id}
                 expense={expense}
+                currentMonth={currentMonth}
                 onToggleComplete={onToggleComplete}
                 onSkip={onSkip}
                 onDelete={onDelete}
@@ -53,6 +55,7 @@ export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete, onEd
                 <ExpenseItem 
                     key={expense.id}
                     expense={expense}
+                    currentMonth={currentMonth}
                     onToggleComplete={onToggleComplete}
                     onSkip={onSkip}
                     onDelete={onDelete}
