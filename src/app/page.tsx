@@ -25,6 +25,7 @@ export default function Home() {
     deletePermanently,
     loading,
     currentMonth,
+    navigateMonth,
   } = useExpenses();
   
   const [formState, setFormState] = useState<{isOpen: boolean, mode: 'add' | 'edit', expense?: DisplayExpense}>({ isOpen: false, mode: 'add' });
@@ -64,7 +65,11 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-background">
       <main className="container mx-auto max-w-2xl p-4 sm:p-6">
-        <AppHeader onAdd={handleOpenAdd} currentMonth={currentMonth} />
+        <AppHeader 
+          onAdd={handleOpenAdd} 
+          currentMonth={currentMonth} 
+          onNavigate={navigateMonth} 
+        />
         
         <ExpenseForm 
           isOpen={formState.isOpen} 
@@ -98,7 +103,7 @@ export default function Home() {
             <CardContent className="p-10 text-center">
               <div className="flex flex-col items-center gap-4">
                 <h3 className="font-headline text-xl font-semibold text-foreground">Mulai Lacak Pengeluaran</h3>
-                <p className="text-muted-foreground">Anda belum memiliki daftar pengeluaran rutin. Tambahkan yang pertama!</p>
+                <p className="text-muted-foreground">Tidak ada data pengeluaran untuk bulan ini. Tambahkan yang pertama!</p>
                 <Button onClick={handleOpenAdd} variant="default" size="lg">
                   <Plus className="mr-2 h-5 w-5" />
                   Tambah Pengeluaran

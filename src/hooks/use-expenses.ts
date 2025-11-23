@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { addMonths, subMonths, format } from 'date-fns';
 import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData } from '@/lib/types';
 import { useToast } from './use-toast';
 
 const MASTER_KEY = 'rutin-tracker-master';
-const MONTHLY_KEY = 'rutin-tracker-monthly';
+const MONTHLY_KEY_PREFIX = 'rutin-tracker-monthly-';
 
 const initialMasterData: MasterExpense[] = [
   { id: '1', name: 'Listrik & Air', amount: 300000, platform: 'BCA' },
@@ -18,27 +19,27 @@ export const useExpenses = () => {
   const [masterExpenses, setMasterExpenses] = useState<MasterExpense[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState('');
+  const [currentMonth, setCurrentMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
   const { toast } = useToast();
 
   useEffect(() => {
+    setLoading(true);
     try {
       const storedMaster = localStorage.getItem(MASTER_KEY);
       const initialMaster = storedMaster ? JSON.parse(storedMaster) : initialMasterData;
       setMasterExpenses(initialMaster);
 
-      const storedMonthly = localStorage.getItem(MONTHLY_KEY);
-      const monthIdentifier = new Date().toISOString().slice(0, 7); // YYYY-MM
-      setCurrentMonth(monthIdentifier);
+      const monthKey = `${MONTHLY_KEY_PREFIX}${currentMonth}`;
+      const storedMonthly = localStorage.getItem(monthKey);
       
-      const monthly: MonthlyData | null = storedMonthly ? JSON.parse(storedMonthly) : null;
+      const monthlyForMonth: MonthlyData | null = storedMonthly ? JSON.parse(storedMonthly) : null;
 
-      if (monthly?.month === monthIdentifier) {
-        setMonthlyData(monthly);
+      if (monthlyForMonth) {
+        setMonthlyData(monthlyForMonth);
       } else {
-        // New month or first load
+        // New month or first load for this month
         const newMonthlyData: MonthlyData = {
-          month: monthIdentifier,
+          month: currentMonth,
           expenses: initialMaster.map((exp: MasterExpense) => ({
             id: exp.id,
             completed: false,
@@ -46,7 +47,7 @@ export const useExpenses = () => {
           })),
         };
         setMonthlyData(newMonthlyData);
-        localStorage.setItem(MONTHLY_KEY, JSON.stringify(newMonthlyData));
+        localStorage.setItem(monthKey, JSON.stringify(newMonthlyData));
       }
       
       if (!storedMaster) {
@@ -55,26 +56,41 @@ export const useExpenses = () => {
 
     } catch (error) {
       console.error("Failed to access localStorage:", error);
-      const monthIdentifier = new Date().toISOString().slice(0, 7);
-      setCurrentMonth(monthIdentifier);
       setMasterExpenses(initialMasterData);
       setMonthlyData({
-          month: monthIdentifier,
+          month: currentMonth,
           expenses: initialMasterData.map(exp => ({ id: exp.id, completed: false, skipped: false }))
       });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentMonth]);
 
   const updateMasterAndSave = useCallback((newMaster: MasterExpense[]) => {
     setMasterExpenses(newMaster);
-    localStorage.setItem(MASTER_KEY, JSON.stringify(newMaster));
+    try {
+      localStorage.setItem(MASTER_KEY, JSON.stringify(newMaster));
+    } catch (error) {
+      console.error("Failed to save master data to localStorage:", error);
+    }
   }, []);
 
   const updateMonthlyAndSave = useCallback((newMonthly: MonthlyData) => {
     setMonthlyData(newMonthly);
-    localStorage.setItem(MONTHLY_KEY, JSON.stringify(newMonthly));
+    try {
+      const monthKey = `${MONTHLY_KEY_PREFIX}${newMonthly.month}`;
+      localStorage.setItem(monthKey, JSON.stringify(newMonthly));
+    } catch (error) {
+      console.error("Failed to save monthly data to localStorage:", error);
+    }
+  }, []);
+  
+  const navigateMonth = useCallback((direction: 'next' | 'prev') => {
+    setCurrentMonth(prevMonth => {
+      const date = new Date(`${prevMonth}-15`); // Use mid-month to avoid timezone issues
+      const newDate = direction === 'next' ? addMonths(date, 1) : subMonths(date, 1);
+      return format(newDate, 'yyyy-MM');
+    });
   }, []);
 
   const addExpense = useCallback((name: string, amount: number, platform: string) => {
@@ -160,15 +176,15 @@ export const useExpenses = () => {
 
   // Sync master and monthly data if there is a mismatch
   useEffect(() => {
-    if (loading || !monthlyData) return;
+    if (loading || !monthlyData || !masterExpenses.length) return;
 
     const masterIds = new Set(masterExpenses.map(e => e.id));
     const monthlyIds = new Set(monthlyData.expenses.map(e => e.id));
 
     let needsUpdate = false;
-    const newMonthlyExpenses = [...monthlyData.expenses];
+    let newMonthlyExpenses = [...monthlyData.expenses];
 
-    // Add new master expenses to monthly
+    // Add new master expenses to monthly for the current month
     for (const masterExp of masterExpenses) {
       if (!monthlyIds.has(masterExp.id)) {
         newMonthlyExpenses.push({
@@ -180,7 +196,7 @@ export const useExpenses = () => {
       }
     }
 
-    // Remove deleted master expenses from monthly
+    // Remove deleted master expenses from monthly for the current month
     const filteredMonthlyExpenses = newMonthlyExpenses.filter(exp => masterIds.has(exp.id));
     if (filteredMonthlyExpenses.length !== newMonthlyExpenses.length) {
       needsUpdate = true;
@@ -197,7 +213,7 @@ export const useExpenses = () => {
       const monthlyState = monthlyData?.expenses.find(m => m.id === masterExp.id);
       return { ...masterExp, ...monthlyState };
     })
-    .filter((exp): exp is DisplayExpense => exp.completed !== undefined && exp.skipped !== undefined);
+    .filter((exp): exp is DisplayExpense => exp.id !== undefined && exp.completed !== undefined && exp.skipped !== undefined);
 
   const summary: ExpenseSummary = expenses.reduce((acc, exp) => {
     if (exp.skipped) return acc;
@@ -223,5 +239,5 @@ export const useExpenses = () => {
     }, {} as PlatformSummaryData);
 
 
-  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth };
+  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth, navigateMonth };
 };
