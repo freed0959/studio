@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useExpenses } from '@/hooks/use-expenses';
+import { usePlatforms } from '@/hooks/use-platforms';
 import { AppHeader } from '@/components/app/app-header';
 import { ProgressSummary } from '@/components/app/progress-summary';
 import { ExpenseList } from '@/components/app/expense-list';
 import { ExpenseForm } from '@/components/app/expense-form';
+import { PlatformSettings } from '@/components/app/platform-settings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
@@ -28,7 +30,10 @@ export default function Home() {
     navigateMonth,
   } = useExpenses();
   
+  const { platforms, addPlatform, updatePlatform, deletePlatform, loading: platformsLoading } = usePlatforms();
+  
   const [formState, setFormState] = useState<{isOpen: boolean, mode: 'add' | 'edit', expense?: DisplayExpense}>({ isOpen: false, mode: 'add' });
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleOpenAdd = () => {
     setFormState({ isOpen: true, mode: 'add' });
@@ -42,7 +47,7 @@ export default function Home() {
     setFormState({ isOpen: false, mode: 'add' });
   }
 
-  if (loading) {
+  if (loading || platformsLoading) {
     return (
       <div className="min-h-screen w-full bg-background">
         <main className="container mx-auto max-w-2xl p-4">
@@ -66,7 +71,8 @@ export default function Home() {
     <div className="min-h-screen w-full bg-background">
       <main className="container mx-auto max-w-2xl p-4 sm:p-6">
         <AppHeader 
-          onAdd={handleOpenAdd} 
+          onAdd={handleOpenAdd}
+          onOpenSettings={() => setIsSettingsOpen(true)}
           currentMonth={currentMonth} 
           onNavigate={navigateMonth} 
         />
@@ -76,6 +82,7 @@ export default function Home() {
           onOpenChange={handleCloseForm}
           mode={formState.mode}
           expense={formState.expense}
+          platforms={platforms}
           onAddExpense={(name, amount, platform) => {
             addExpense(name, amount, platform);
             handleCloseForm();
@@ -84,6 +91,15 @@ export default function Home() {
             updateExpense(id, { name, amount, platform });
             handleCloseForm();
           }}
+        />
+
+        <PlatformSettings
+          isOpen={isSettingsOpen}
+          onOpenChange={setIsSettingsOpen}
+          platforms={platforms}
+          onAddPlatform={addPlatform}
+          onUpdatePlatform={updatePlatform}
+          onDeletePlatform={deletePlatform}
         />
 
         {expenses.length > 0 ? (

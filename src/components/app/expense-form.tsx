@@ -30,28 +30,30 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import type { DisplayExpense } from "@/lib/types";
+import type { DisplayExpense, Platform } from "@/lib/types";
 import { formatCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 
-const platforms = ["Bibit", "Bank Jago", "Dana", "Gopay", "BCA", "Cash"] as const;
-
-const formSchema = z.object({
+const formSchema = (platforms: string[]) => z.object({
   name: z.string().min(2, {
     message: "Nama pengeluaran minimal 2 karakter.",
   }),
   amount: z.string().refine(val => parseCurrencyInput(val) > 0, {
     message: "Jumlah harus lebih dari 0.",
   }),
-  platform: z.enum(platforms, {
+  platform: z.string({
     required_error: "Platform harus dipilih.",
+  }).refine(val => platforms.includes(val), {
+    message: "Platform tidak valid."
   }),
 });
+
 
 type ExpenseFormProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   mode: 'add' | 'edit';
   expense?: DisplayExpense;
+  platforms: Platform[];
   onAddExpense: (name: string, amount: number, platform: string) => void;
   onEditExpense: (id: string, name: string, amount: number, platform: string) => void;
 };
@@ -61,11 +63,15 @@ export function ExpenseForm({
   onOpenChange,
   mode,
   expense,
+  platforms,
   onAddExpense,
   onEditExpense,
 }: ExpenseFormProps) {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const platformNames = platforms.map(p => p.name);
+  const currentFormSchema = formSchema(platformNames);
+
+  const form = useForm<z.infer<typeof currentFormSchema>>({
+    resolver: zodResolver(currentFormSchema),
     defaultValues: {
       name: "",
       amount: "0",
@@ -77,14 +83,14 @@ export function ExpenseForm({
       form.reset({
         name: expense.name,
         amount: formatCurrencyInput(expense.amount),
-        platform: expense.platform as typeof platforms[number],
+        platform: expense.platform,
       });
     } else if (isOpen && mode === 'add') {
       form.reset({ name: "", amount: "0", platform: undefined });
     }
   }, [isOpen, mode, expense, form]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof currentFormSchema>) {
     const amount = parseCurrencyInput(values.amount);
     if (mode === 'add') {
       onAddExpense(values.name, amount, values.platform);
@@ -156,7 +162,7 @@ export function ExpenseForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {platforms.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        {platforms.map(p => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />

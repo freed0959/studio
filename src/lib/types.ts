@@ -22,9 +22,11 @@ export type ExpenseSummary = {
   total: number;
   completedAmount: number;
   progress: number;
-  remaining: number;
+... 2 more lines
+  [platform: string]: number;
 }
 
-export type PlatformSummaryData = {
-  [platform: string]: number;
+export type Platform = {
+  id: string;
+  name: string;
 }
