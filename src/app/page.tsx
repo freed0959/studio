@@ -69,9 +69,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <main className="container mx-auto max-w-2xl p-4 sm:p-6">
+      <main className="container mx-auto max-w-2xl p-4 sm:p-6 pb-24">
         <AppHeader 
-          onAdd={handleOpenAdd}
           onOpenSettings={() => setIsSettingsOpen(true)}
           currentMonth={currentMonth} 
           onNavigate={navigateMonth} 
@@ -130,6 +129,16 @@ export default function Home() {
           </Card>
         )}
       </main>
+
+      <Button
+        onClick={handleOpenAdd}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+        size="icon"
+      >
+        <Plus className="h-6 w-6" />
+        <span className="sr-only">Tambah Pengeluaran</span>
+      </Button>
+
       <footer className="text-center p-4 text-sm text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} Biaya RT. Dibuat dengan ❤️.</p>
       </footer>

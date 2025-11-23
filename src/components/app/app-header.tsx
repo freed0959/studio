@@ -6,13 +6,12 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 type AppHeaderProps = {
-  onAdd: () => void;
   onOpenSettings: () => void;
   currentMonth: string;
   onNavigate: (direction: 'prev' | 'next') => void;
 };
 
-export function AppHeader({ onAdd, onOpenSettings, currentMonth, onNavigate }: AppHeaderProps) {
+export function AppHeader({ onOpenSettings, currentMonth, onNavigate }: AppHeaderProps) {
   const formattedDate = currentMonth 
     ? format(new Date(currentMonth + '-15'), "MMMM yyyy", { locale: id })
     : 'Bulan Ini';
@@ -44,10 +43,6 @@ export function AppHeader({ onAdd, onOpenSettings, currentMonth, onNavigate }: A
         <Button onClick={onOpenSettings} variant="ghost" size="icon" className="shrink-0">
           <Settings className="h-5 w-5" />
           <span className="sr-only">Pengaturan</span>
-        </Button>
-        <Button onClick={onAdd} variant="default" className="shadow-sm">
-          <Plus className="mr-2 h-4 w-4" />
-          <span className="hidden sm:inline">Tambah</span>
         </Button>
       </div>
     </header>
