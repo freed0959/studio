@@ -6,9 +6,9 @@ import { cn, formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { MoreVertical, EyeOff, Trash2 } from "lucide-react";
+import { MoreVertical, EyeOff, Trash2, Pencil } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 
 type ExpenseItemProps = {
@@ -16,9 +16,10 @@ type ExpenseItemProps = {
   onToggleComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (expense: DisplayExpense) => void;
 };
 
-export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete }: ExpenseItemProps) {
+export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseItemProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   return (
@@ -69,10 +70,15 @@ export function ExpenseItem({ expense, onToggleComplete, onSkip, onDelete }: Exp
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(expense)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                <span>Ubah</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSkip(expense.id)}>
                 <EyeOff className="mr-2 h-4 w-4" />
                 <span>Lewati bulan ini</span>
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Hapus permanen</span>

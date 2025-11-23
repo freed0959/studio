@@ -13,3 +13,13 @@ export const formatCurrency = (amount: number) => {
     maximumFractionDigits: 0,
   }).format(amount);
 };
+
+export const formatCurrencyInput = (value: string | number): string => {
+  const num = typeof value === 'string' ? value.replace(/[^0-9]/g, '') : value.toString();
+  if (num === '' || num === '0') return '0';
+  return new Intl.NumberFormat('id-ID').format(Number(num));
+};
+
+export const parseCurrencyInput = (value: string): number => {
+  return Number(value.replace(/[^0-9]/g, ''));
+};

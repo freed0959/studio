@@ -10,9 +10,10 @@ type ExpenseListProps = {
   onToggleComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (expense: DisplayExpense) => void;
 };
 
-export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete }: ExpenseListProps) {
+export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseListProps) {
   const visibleExpenses = expenses.filter(exp => !exp.skipped);
   const todoExpenses = visibleExpenses.filter(exp => !exp.completed);
   const completedExpenses = visibleExpenses.filter(exp => exp.completed);
@@ -33,6 +34,7 @@ export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete }: Ex
                 onToggleComplete={onToggleComplete}
                 onSkip={onSkip}
                 onDelete={onDelete}
+                onEdit={onEdit}
               />
             ))}
           </div>
@@ -54,6 +56,7 @@ export function ExpenseList({ expenses, onToggleComplete, onSkip, onDelete }: Ex
                     onToggleComplete={onToggleComplete}
                     onSkip={onSkip}
                     onDelete={onDelete}
+                    onEdit={onEdit}
                 />
                 ))}
             </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -29,6 +30,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import type { DisplayExpense } from "@/lib/types";
+import { formatCurrencyInput, parseCurrencyInput } from "@/lib/utils";
 
 const platforms = ["Bibit", "Bank Jago", "Dana", "Gopay", "BCA", "Cash"] as const;
 
@@ -36,7 +39,7 @@ const formSchema = z.object({
   name: z.string().min(2, {
     message: "Nama pengeluaran minimal 2 karakter.",
   }),
-  amount: z.coerce.number().positive({
+  amount: z.string().refine(val => parseCurrencyInput(val) > 0, {
     message: "Jumlah harus lebih dari 0.",
   }),
   platform: z.enum(platforms, {
@@ -44,37 +47,66 @@ const formSchema = z.object({
   }),
 });
 
-type AddExpenseFormProps = {
+type ExpenseFormProps = {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  mode: 'add' | 'edit';
+  expense?: DisplayExpense;
   onAddExpense: (name: string, amount: number, platform: string) => void;
+  onEditExpense: (id: string, name: string, amount: number, platform: string) => void;
 };
 
-export function AddExpenseForm({
+export function ExpenseForm({
   isOpen,
   onOpenChange,
+  mode,
+  expense,
   onAddExpense,
-}: AddExpenseFormProps) {
+  onEditExpense,
+}: ExpenseFormProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      amount: 0,
+      amount: "0",
     },
   });
 
+  useEffect(() => {
+    if (isOpen && mode === 'edit' && expense) {
+      form.reset({
+        name: expense.name,
+        amount: formatCurrencyInput(expense.amount),
+        platform: expense.platform as typeof platforms[number],
+      });
+    } else if (isOpen && mode === 'add') {
+      form.reset({ name: "", amount: "0", platform: undefined });
+    }
+  }, [isOpen, mode, expense, form]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
-    onAddExpense(values.name, values.amount, values.platform);
-    form.reset();
+    const amount = parseCurrencyInput(values.amount);
+    if (mode === 'add') {
+      onAddExpense(values.name, amount, values.platform);
+    } else if (mode === 'edit' && expense) {
+      onEditExpense(expense.id, values.name, amount, values.platform);
+    }
+    onOpenChange(false);
   }
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formattedValue = formatCurrencyInput(value);
+    form.setValue('amount', formattedValue);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Tambah Pengeluaran Rutin</DialogTitle>
+          <DialogTitle>{mode === 'add' ? 'Tambah Pengeluaran' : 'Ubah Pengeluaran'}</DialogTitle>
           <DialogDescription>
-            Pengeluaran ini akan muncul setiap bulan.
+            {mode === 'add' ? 'Pengeluaran ini akan muncul setiap bulan.' : `Mengubah detail untuk ${expense?.name}.`}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -100,7 +132,12 @@ export function AddExpenseForm({
                   <FormItem>
                     <FormLabel>Jumlah (Rp)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Contoh: 350000" {...field} />
+                      <Input 
+                        placeholder="Contoh: 350.000" 
+                        {...field} 
+                        onChange={handleAmountChange}
+                        inputMode="numeric"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -112,7 +149,7 @@ export function AddExpenseForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Platform</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih platform pembayaran" />

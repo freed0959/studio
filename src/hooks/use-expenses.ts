@@ -18,6 +18,7 @@ export const useExpenses = () => {
   const [masterExpenses, setMasterExpenses] = useState<MasterExpense[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -27,15 +28,17 @@ export const useExpenses = () => {
       setMasterExpenses(initialMaster);
 
       const storedMonthly = localStorage.getItem(MONTHLY_KEY);
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const monthIdentifier = new Date().toISOString().slice(0, 7); // YYYY-MM
+      setCurrentMonth(monthIdentifier);
+      
       const monthly: MonthlyData | null = storedMonthly ? JSON.parse(storedMonthly) : null;
 
-      if (monthly?.month === currentMonth) {
+      if (monthly?.month === monthIdentifier) {
         setMonthlyData(monthly);
       } else {
         // New month or first load
         const newMonthlyData: MonthlyData = {
-          month: currentMonth,
+          month: monthIdentifier,
           expenses: initialMaster.map((exp: MasterExpense) => ({
             id: exp.id,
             completed: false,
@@ -52,10 +55,11 @@ export const useExpenses = () => {
 
     } catch (error) {
       console.error("Failed to access localStorage:", error);
-      // Fallback for SSR or disabled localStorage
+      const monthIdentifier = new Date().toISOString().slice(0, 7);
+      setCurrentMonth(monthIdentifier);
       setMasterExpenses(initialMasterData);
       setMonthlyData({
-          month: new Date().toISOString().slice(0, 7),
+          month: monthIdentifier,
           expenses: initialMasterData.map(exp => ({ id: exp.id, completed: false, skipped: false }))
       });
     } finally {
@@ -91,6 +95,23 @@ export const useExpenses = () => {
         description: `Pengeluaran "${name}" telah ditambahkan.`,
     });
   }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast]);
+
+  const updateExpense = useCallback((id: string, updatedData: Partial<Omit<MasterExpense, 'id'>>) => {
+    let updatedName = '';
+    const newMaster = masterExpenses.map(exp => {
+        if (exp.id === id) {
+            const updated = { ...exp, ...updatedData };
+            updatedName = updated.name;
+            return updated;
+        }
+        return exp;
+    });
+    updateMasterAndSave(newMaster);
+    toast({
+        title: "Sukses!",
+        description: `Pengeluaran "${updatedName}" telah diperbarui.`,
+    });
+  }, [masterExpenses, updateMasterAndSave, toast]);
 
   const toggleComplete = useCallback((id: string) => {
     if (!monthlyData) return;
@@ -202,5 +223,5 @@ export const useExpenses = () => {
     }, {} as PlatformSummaryData);
 
 
-  return { expenses, summary, platformSummary, addExpense, toggleComplete, skipForMonth, deletePermanently, loading };
+  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth };
 };

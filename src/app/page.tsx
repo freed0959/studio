@@ -5,25 +5,41 @@ import { useExpenses } from '@/hooks/use-expenses';
 import { AppHeader } from '@/components/app/app-header';
 import { ProgressSummary } from '@/components/app/progress-summary';
 import { ExpenseList } from '@/components/app/expense-list';
-import { AddExpenseForm } from '@/components/app/add-expense-form';
+import { ExpenseForm } from '@/components/app/expense-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
+import type { DisplayExpense } from '@/lib/types';
 
 export default function Home() {
   const { 
     expenses, 
     summary,
     platformSummary,
-    addExpense, 
+    addExpense,
+    updateExpense,
     toggleComplete, 
     skipForMonth, 
     deletePermanently,
-    loading 
+    loading,
+    currentMonth,
   } = useExpenses();
-  const [isAddOpen, setIsAddOpen] = useState(false);
+  
+  const [formState, setFormState] = useState<{isOpen: boolean, mode: 'add' | 'edit', expense?: DisplayExpense}>({ isOpen: false, mode: 'add' });
+
+  const handleOpenAdd = () => {
+    setFormState({ isOpen: true, mode: 'add' });
+  };
+
+  const handleOpenEdit = (expense: DisplayExpense) => {
+    setFormState({ isOpen: true, mode: 'edit', expense });
+  };
+
+  const handleCloseForm = () => {
+    setFormState({ isOpen: false, mode: 'add' });
+  }
 
   if (loading) {
     return (
@@ -48,14 +64,20 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-background">
       <main className="container mx-auto max-w-2xl p-4 sm:p-6">
-        <AppHeader onAdd={() => setIsAddOpen(true)} />
+        <AppHeader onAdd={handleOpenAdd} currentMonth={currentMonth} />
         
-        <AddExpenseForm 
-          isOpen={isAddOpen} 
-          onOpenChange={setIsAddOpen}
+        <ExpenseForm 
+          isOpen={formState.isOpen} 
+          onOpenChange={handleCloseForm}
+          mode={formState.mode}
+          expense={formState.expense}
           onAddExpense={(name, amount, platform) => {
             addExpense(name, amount, platform);
-            setIsAddOpen(false);
+            handleCloseForm();
+          }}
+          onEditExpense={(id, name, amount, platform) => {
+            updateExpense(id, { name, amount, platform });
+            handleCloseForm();
           }}
         />
 
@@ -68,6 +90,7 @@ export default function Home() {
               onToggleComplete={toggleComplete}
               onSkip={skipForMonth}
               onDelete={deletePermanently}
+              onEdit={handleOpenEdit}
             />
           </>
         ) : (
@@ -76,7 +99,7 @@ export default function Home() {
               <div className="flex flex-col items-center gap-4">
                 <h3 className="font-headline text-xl font-semibold text-foreground">Mulai Lacak Pengeluaran</h3>
                 <p className="text-muted-foreground">Anda belum memiliki daftar pengeluaran rutin. Tambahkan yang pertama!</p>
-                <Button onClick={() => setIsAddOpen(true)} variant="default" size="lg">
+                <Button onClick={handleOpenAdd} variant="default" size="lg">
                   <Plus className="mr-2 h-5 w-5" />
                   Tambah Pengeluaran
                 </Button>
