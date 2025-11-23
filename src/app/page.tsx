@@ -130,7 +130,7 @@ export default function Home() {
         )}
       </main>
       <footer className="text-center p-4 text-sm text-muted-foreground">
-        <p>&copy; {new Date().getFullYear()} Rutin Tracker. Dibuat dengan ❤️.</p>
+        <p>&copy; {new Date().getFullYear()} Biaya RT. Dibuat dengan ❤️.</p>
       </footer>
     </div>
   );

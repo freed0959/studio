@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Rutin Tracker',
+  title: 'Biaya RT',
   description: 'Lacak pengeluaran rutin bulanan Anda',
   manifest: "/manifest.json",
 };
@@ -16,10 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta name="application-name" content="Rutin Tracker" />
+        <meta name="application-name" content="Biaya RT" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Rutin Tracker" />
+        <meta name="apple-mobile-web-app-title" content="Biaya RT" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />

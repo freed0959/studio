@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus, Repeat, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { Plus, Home, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -23,11 +23,11 @@ export function AppHeader({ onAdd, onOpenSettings, currentMonth, onNavigate }: A
     <header className="flex items-center justify-between py-4 mb-2">
       <div className="flex items-center gap-3">
         <div className="p-2 bg-primary/10 text-primary rounded-lg">
-          <Repeat className="h-6 w-6" />
+          <Home className="h-6 w-6" />
         </div>
         <div>
           <h1 className="text-xl sm:text-2xl font-bold font-headline text-foreground tracking-tight">
-            Rutin Tracker
+            Biaya RT
           </h1>
           <div className="flex items-center gap-1">
              <Button onClick={() => onNavigate('prev')} variant="ghost" size="icon" className="h-7 w-7">
