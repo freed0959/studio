@@ -32,7 +32,7 @@ export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, o
     const dueDate = parseISO(`${currentMonth}-${String(expense.dueDate).padStart(2, '0')}`);
     const daysUntilDue = differenceInDays(dueDate, today);
 
-    if (daysUntilDue <= 1) { // Today or tomorrow
+    if (daysUntilDue >= 0 && daysUntilDue <= 1) { // Today or tomorrow
       return "urgent";
     }
     return "default";
