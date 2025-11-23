@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { addMonths, subMonths, format, getMonth } from 'date-fns';
+import { addMonths, subMonths, format, getMonth, getYear } from 'date-fns';
 import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence, SortOption } from '@/lib/types';
 import { useToast } from './use-toast';
+import { getCycleDateRange } from '@/lib/utils';
 
 const MASTER_KEY = 'rutin-tracker-master';
 const MONTHLY_KEY_PREFIX = 'rutin-tracker-monthly-';
@@ -23,8 +24,8 @@ export const useExpenses = () => {
   const [sortOption, setSortOption] = useState<SortOption>('dueDate');
   const { toast } = useToast();
 
-  const currentMonthDate = useMemo(() => new Date(currentMonth + '-15'), [currentMonth]);
-  const currentMonthNumber = useMemo(() => getMonth(currentMonthDate) + 1, [currentMonthDate]);
+  const { end: cycleEndDate } = useMemo(() => getCycleDateRange(currentMonth), [currentMonth]);
+  const currentCycleMonthNumber = useMemo(() => getMonth(cycleEndDate) + 1, [cycleEndDate]);
 
 
   const migrateMasterData = (data: any[]): MasterExpense[] => {
@@ -113,8 +114,7 @@ export const useExpenses = () => {
     const newMaster = [...masterExpenses, newExpense];
     updateMasterAndSave(newMaster);
 
-    // Only add to current monthly data if it's supposed to appear this month
-    const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentMonthNumber));
+    const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentCycleMonthNumber));
 
     if (monthlyData && shouldAppearThisMonth) {
       const newMonthlyState: MonthlyExpenseState = { id: newExpense.id, completed: false, skipped: false };
@@ -128,7 +128,7 @@ export const useExpenses = () => {
         title: "Sukses!",
         description: `Pengeluaran "${name}" telah ditambahkan.`,
     });
-  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast, currentMonthNumber]);
+  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast, currentCycleMonthNumber]);
 
   const updateExpense = useCallback((id: string, updatedData: Partial<Omit<MasterExpense, 'id'>>) => {
     let updatedName = '';
@@ -166,7 +166,7 @@ export const useExpenses = () => {
     const expense = masterExpenses.find(e => e.id === id);
     toast({
         title: "Pengeluaran Dilewati",
-        description: `"${expense?.name}" tidak akan ditampilkan bulan ini.`,
+        description: `"${expense?.name}" tidak akan ditampilkan untuk periode ini.`,
         variant: "default",
     });
   }, [monthlyData, masterExpenses, updateMonthlyAndSave, toast]);
@@ -206,7 +206,7 @@ export const useExpenses = () => {
     for (const masterExp of masterExpenses) {
       if (!monthlyIds.has(masterExp.id)) {
         const { recurrence } = masterExp;
-        const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentMonthNumber));
+        const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentCycleMonthNumber));
 
         if (shouldAppearThisMonth) {
             newMonthlyExpenses.push({
@@ -229,7 +229,7 @@ export const useExpenses = () => {
       updateMonthlyAndSave({ ...monthlyData, expenses: filteredMonthlyExpenses });
     }
 
-  }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave, currentMonthNumber]);
+  }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave, currentCycleMonthNumber]);
   
   const sortExpenses = useCallback((option: SortOption) => {
     setSortOption(option);
@@ -239,7 +239,7 @@ export const useExpenses = () => {
     .filter(masterExp => {
         const { recurrence } = masterExp;
         if (recurrence.type === 'specific') {
-            return recurrence.months.includes(currentMonthNumber);
+            return recurrence.months.includes(currentCycleMonthNumber);
         }
         return true; // 'monthly' expenses always included
     })
@@ -258,7 +258,7 @@ export const useExpenses = () => {
         default:
           return a.dueDate - b.dueDate;
       }
-    }), [masterExpenses, monthlyData, currentMonthNumber, sortOption]);
+    }), [masterExpenses, monthlyData, currentCycleMonthNumber, sortOption]);
 
   const summary: ExpenseSummary = expenses.reduce((acc, exp) => {
     if (exp.skipped) return acc;

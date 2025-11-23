@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { DisplayExpense } from "@/lib/types";
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency, getCycleDateRange } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MoreVertical, EyeOff, Trash2, Pencil, CalendarDays, Repeat, Repeat1 } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
-import { differenceInDays, startOfDay, parseISO } from 'date-fns';
+import { differenceInDays, startOfDay } from 'date-fns';
 
 type ExpenseItemProps = {
   expense: DisplayExpense;
@@ -29,11 +29,21 @@ export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, o
       return "default";
     }
     const today = startOfDay(new Date());
-    const dueDate = parseISO(`${currentMonth}-${String(expense.dueDate).padStart(2, '0')}`);
+    const { start, end } = getCycleDateRange(currentMonth);
+
+    // Determine the correct year for the due date
+    const dueDateMonth = expense.dueDate >= 25 ? start.getMonth() : end.getMonth();
+    const dueDateYear = expense.dueDate >= 25 ? start.getFullYear() : end.getFullYear();
+    
+    const dueDate = new Date(dueDateYear, dueDateMonth, expense.dueDate);
+
     const daysUntilDue = differenceInDays(dueDate, today);
 
     if (daysUntilDue >= 0 && daysUntilDue <= 1) { // Today or tomorrow
       return "urgent";
+    }
+    if (daysUntilDue < 0) {
+        return "default"; // past due
     }
     return "default";
   };
@@ -114,7 +124,7 @@ export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, o
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onSkip(expense.id)}>
                 <EyeOff className="mr-2 h-4 w-4" />
-                <span>Lewati bulan ini</span>
+                <span>Lewati periode ini</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} className="text-destructive focus:text-destructive focus:bg-destructive/10">
@@ -131,7 +141,7 @@ export function ExpenseItem({ expense, currentMonth, onToggleComplete, onSkip, o
           <AlertDialogHeader>
             <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
             <AlertDialogDescription>
-              Tindakan ini akan menghapus <strong>{expense.name}</strong> secara permanen. Pengeluaran ini tidak akan muncul lagi di bulan-bulan berikutnya.
+              Tindakan ini akan menghapus <strong>{expense.name}</strong> secara permanen. Pengeluaran ini tidak akan muncul lagi di periode-periode berikutnya.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

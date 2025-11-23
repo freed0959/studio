@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Papa from 'papaparse';
 import { useExpenses } from '@/hooks/use-expenses';
 import { usePlatforms } from '@/hooks/use-platforms';
 import { AppHeader } from '@/components/app/app-header';
@@ -14,6 +15,8 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
 import type { DisplayExpense, SortOption } from '@/lib/types';
+import { formatCurrency, getCycleDateRange } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export default function Home() {
   const { 
@@ -49,6 +52,34 @@ export default function Home() {
     setFormState({ isOpen: false, mode: 'add' });
   }
 
+  const handleExport = () => {
+    const { start } = getCycleDateRange(currentMonth);
+
+    const dataToExport = expenses.map(e => ({
+      'Nama Pengeluaran': e.name,
+      'Jumlah': e.amount,
+      'Platform': e.platform,
+      'Tanggal Bayar': e.dueDate,
+      'Status': e.completed ? 'Selesai' : (e.skipped ? 'Dilewati' : 'Belum Selesai'),
+      'Berulang': e.recurrence.type === 'monthly' ? 'Tiap Bulan' : `Bulan Tertentu (${e.recurrence.months.join(', ')})`,
+    }));
+
+    const csv = Papa.unparse(dataToExport, {
+      header: true,
+      quotes: true,
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Biaya_RT_${format(start, 'yyyy-MM')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   if (loading || platformsLoading) {
     return (
       <div className="min-h-screen w-full bg-background">
@@ -75,7 +106,8 @@ export default function Home() {
         <AppHeader 
           onOpenSettings={() => setIsSettingsOpen(true)}
           currentMonth={currentMonth} 
-          onNavigate={navigateMonth} 
+          onNavigate={navigateMonth}
+          onExport={handleExport}
         />
         
         <ExpenseForm 
@@ -123,7 +155,7 @@ export default function Home() {
             <CardContent className="p-10 text-center">
               <div className="flex flex-col items-center gap-4">
                 <h3 className="font-headline text-xl font-semibold text-foreground">Mulai Lacak Pengeluaran</h3>
-                <p className="text-muted-foreground">Tidak ada data pengeluaran untuk bulan ini. Tambahkan yang pertama!</p>
+                <p className="text-muted-foreground">Tidak ada data pengeluaran untuk periode ini. Tambahkan yang pertama!</p>
                 <Button onClick={handleOpenAdd} variant="default" size="lg">
                   <Plus className="mr-2 h-5 w-5" />
                   Tambah Pengeluaran

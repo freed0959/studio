@@ -1,5 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { subMonths, startOfMonth, endOfMonth, setDate } from 'date-fns';
+
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -22,4 +24,13 @@ export const formatCurrencyInput = (value: string | number): string => {
 
 export const parseCurrencyInput = (value: string): number => {
   return Number(value.replace(/[^0-9]/g, ''));
+};
+
+export const getCycleDateRange = (currentMonthYYYYMM: string) => {
+  const currentMonthDate = new Date(currentMonthYYYYMM + '-25');
+  
+  const start = setDate(subMonths(currentMonthDate, 1), 25);
+  const end = setDate(currentMonthDate, 24);
+
+  return { start, end };
 };
