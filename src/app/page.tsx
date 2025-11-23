@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
-import type { DisplayExpense, Recurrence } from '@/lib/types';
+import type { DisplayExpense, SortOption } from '@/lib/types';
 
 export default function Home() {
   const { 
@@ -28,6 +28,8 @@ export default function Home() {
     loading,
     currentMonth,
     navigateMonth,
+    sortExpenses,
+    sortOption,
   } = useExpenses();
   
   const { platforms, addPlatform, updatePlatform, deletePlatform, loading: platformsLoading } = usePlatforms();
@@ -108,6 +110,8 @@ export default function Home() {
             <ExpenseList 
               expenses={expenses}
               currentMonth={currentMonth}
+              sortOption={sortOption}
+              onSortChange={sortExpenses}
               onToggleComplete={toggleComplete}
               onSkip={skipForMonth}
               onDelete={deletePermanently}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { addMonths, subMonths, format, getMonth } from 'date-fns';
-import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence } from '@/lib/types';
+import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence, SortOption } from '@/lib/types';
 import { useToast } from './use-toast';
 
 const MASTER_KEY = 'rutin-tracker-master';
@@ -20,6 +20,7 @@ export const useExpenses = () => {
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const [sortOption, setSortOption] = useState<SortOption>('dueDate');
   const { toast } = useToast();
 
   const currentMonthDate = useMemo(() => new Date(currentMonth + '-15'), [currentMonth]);
@@ -229,8 +230,12 @@ export const useExpenses = () => {
     }
 
   }, [masterExpenses, monthlyData, loading, updateMonthlyAndSave, currentMonthNumber]);
+  
+  const sortExpenses = useCallback((option: SortOption) => {
+    setSortOption(option);
+  }, []);
 
-  const expenses: DisplayExpense[] = masterExpenses
+  const expenses: DisplayExpense[] = useMemo(() => masterExpenses
     .filter(masterExp => {
         const { recurrence } = masterExp;
         if (recurrence.type === 'specific') {
@@ -243,7 +248,17 @@ export const useExpenses = () => {
       return { ...masterExp, ...monthlyState };
     })
     .filter((exp): exp is DisplayExpense => exp.id !== undefined && exp.completed !== undefined && exp.skipped !== undefined)
-    .sort((a, b) => a.dueDate - b.dueDate);
+    .sort((a, b) => {
+      switch (sortOption) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'amount':
+          return b.amount - a.amount;
+        case 'dueDate':
+        default:
+          return a.dueDate - b.dueDate;
+      }
+    }), [masterExpenses, monthlyData, currentMonthNumber, sortOption]);
 
   const summary: ExpenseSummary = expenses.reduce((acc, exp) => {
     if (exp.skipped) return acc;
@@ -269,5 +284,5 @@ export const useExpenses = () => {
     }, {} as PlatformSummaryData);
 
 
-  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth, navigateMonth };
+  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth, navigateMonth, sortExpenses, sortOption };
 };

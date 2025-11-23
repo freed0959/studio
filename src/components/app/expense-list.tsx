@@ -1,20 +1,37 @@
 "use client";
 
-import type { DisplayExpense } from "@/lib/types";
+import type { DisplayExpense, SortOption } from "@/lib/types";
 import { ExpenseItem } from "./expense-item";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, ListTodo } from "lucide-react";
+import { CheckCircle2, ListTodo, ArrowUpDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button";
 
 type ExpenseListProps = {
   expenses: DisplayExpense[];
   currentMonth: string;
+  sortOption: SortOption;
+  onSortChange: (option: SortOption) => void;
   onToggleComplete: (id: string) => void;
   onSkip: (id: string) => void;
   onDelete: (id: string) => void;
   onEdit: (expense: DisplayExpense) => void;
 };
 
-export function ExpenseList({ expenses, currentMonth, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseListProps) {
+const sortLabels: Record<SortOption, string> = {
+  dueDate: 'Tanggal',
+  name: 'Nama',
+  amount: 'Jumlah'
+};
+
+
+export function ExpenseList({ expenses, currentMonth, sortOption, onSortChange, onToggleComplete, onSkip, onDelete, onEdit }: ExpenseListProps) {
   const visibleExpenses = expenses.filter(exp => !exp.skipped);
   const todoExpenses = visibleExpenses.filter(exp => !exp.completed);
   const completedExpenses = visibleExpenses.filter(exp => exp.completed);
@@ -23,10 +40,27 @@ export function ExpenseList({ expenses, currentMonth, onToggleComplete, onSkip, 
     <div className="mt-6 space-y-4">
       {todoExpenses.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold font-headline mb-3 text-muted-foreground flex items-center gap-2">
-            <ListTodo className="h-5 w-5" />
-            Belum Selesai
-          </h2>
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-lg font-semibold font-headline text-muted-foreground flex items-center gap-2">
+              <ListTodo className="h-5 w-5" />
+              Belum Selesai
+            </h2>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <ArrowUpDown className="mr-2 h-4 w-4" />
+                  Urutkan: {sortLabels[sortOption]}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuRadioGroup value={sortOption} onValueChange={(value) => onSortChange(value as SortOption)}>
+                  <DropdownMenuRadioItem value="dueDate">Tanggal</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="name">Nama</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="amount">Jumlah</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <div className="space-y-2">
             {todoExpenses.map(expense => (
               <ExpenseItem 
