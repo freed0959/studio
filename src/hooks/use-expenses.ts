@@ -256,7 +256,8 @@ export const useExpenses = () => {
           return b.amount - a.amount;
         case 'dueDate':
         default:
-          return a.dueDate - b.dueDate;
+          const getSortableDate = (date: number) => (date >= 25 ? date - 25 : date + 7);
+          return getSortableDate(a.dueDate) - getSortableDate(b.dueDate);
       }
     }), [masterExpenses, monthlyData, currentCycleMonthNumber, sortOption]);
 
