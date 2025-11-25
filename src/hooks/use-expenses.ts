@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { addMonths, subMonths, format, getMonth, getYear } from 'date-fns';
+import { addMonths, subMonths, format, getMonth, getYear, startOfToday } from 'date-fns';
 import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence, SortOption } from '@/lib/types';
 import { useToast } from './use-toast';
 import { getCycleDateRange } from '@/lib/utils';
@@ -16,11 +16,22 @@ const initialMasterData: MasterExpense[] = [
   { id: '4', name: 'Langganan Streaming', amount: 150000, platform: 'Gopay', dueDate: 15, recurrence: { type: 'monthly' } },
 ];
 
+const getCurrentCycleMonth = () => {
+    const today = new Date();
+    // If today is before the 25th, we are in the cycle of the previous month.
+    // e.g. Oct 25 to Nov 24 is the "November" cycle.
+    // So if it's Nov 1-24, the cycle month is November (month 11).
+    // if it's Oct 25-31, the cycle month is also November.
+    const dateForCycle = today.getDate() < 25 ? today : addMonths(today, 1);
+    return format(dateForCycle, 'yyyy-MM');
+};
+
+
 export const useExpenses = () => {
   const [masterExpenses, setMasterExpenses] = useState<MasterExpense[]>([]);
   const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentMonth, setCurrentMonth] = useState<string>(() => new Date().toISOString().slice(0, 7));
+  const [currentMonth, setCurrentMonth] = useState<string>(getCurrentCycleMonth);
   const [sortOption, setSortOption] = useState<SortOption>('dueDate');
   const { toast } = useToast();
 

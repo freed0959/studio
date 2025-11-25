@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus, Home, ChevronLeft, ChevronRight, Settings, Download } from "lucide-react";
-import { format } from 'date-fns';
+import { format, startOfToday } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { getCycleDateRange } from "@/lib/utils";
 
@@ -17,7 +17,8 @@ export function AppHeader({ onOpenSettings, currentMonth, onNavigate, onExport }
     const { start, end } = getCycleDateRange(currentMonth);
     const formattedDate = `25 ${format(start, 'MMM', { locale: id })} - 24 ${format(end, 'MMM yyyy', { locale: id })}`;
 
-  const isCurrentMonth = currentMonth === new Date().toISOString().slice(0, 7);
+    const today = startOfToday();
+    const isCurrentMonth = today >= start && today <= end;
 
   return (
     <header className="flex items-center justify-between py-4 mb-2">
