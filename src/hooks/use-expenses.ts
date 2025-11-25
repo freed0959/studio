@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { addMonths, subMonths, format, getMonth, getYear, startOfToday } from 'date-fns';
+import { addMonths, subMonths, format, getMonth, startOfToday } from 'date-fns';
 import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence, SortOption } from '@/lib/types';
 import { useToast } from './use-toast';
 import { getCycleDateRange } from '@/lib/utils';
@@ -17,12 +17,17 @@ const initialMasterData: MasterExpense[] = [
 ];
 
 const getCurrentCycleMonth = () => {
+    // We use local date parts to avoid timezone issues with `new Date()` and `toISOString()`
     const today = new Date();
-    // If today is before the 25th, we are in the cycle of the previous month.
-    // e.g. Oct 25 to Nov 24 is the "November" cycle.
-    // So if it's Nov 1-24, the cycle month is November (month 11).
-    // if it's Oct 25-31, the cycle month is also November.
-    const dateForCycle = today.getDate() < 25 ? today : addMonths(today, 1);
+    const year = today.getFullYear();
+    const month = today.getMonth(); // 0-indexed
+    const day = today.getDate();
+
+    // If today is before the 25th, we are in the cycle of the current month name.
+    // e.g. Oct 25 to Nov 24 is the "November" cycle (Month 11).
+    // If it's Nov 1-24, cycle is '2023-11'.
+    // If it's Oct 25-31, cycle is also '2023-11'.
+    const dateForCycle = day < 25 ? new Date(year, month) : addMonths(new Date(year, month), 1);
     return format(dateForCycle, 'yyyy-MM');
 };
 
@@ -284,16 +289,27 @@ export const useExpenses = () => {
   summary.progress = summary.total > 0 ? (summary.completedAmount / summary.total) * 100 : 0;
   summary.remaining = summary.total - summary.completedAmount;
 
-  const platformSummary: PlatformSummaryData = expenses
-    .filter(exp => !exp.skipped)
-    .reduce((acc, exp) => {
-        const platform = exp.platform;
-        if (!acc[platform]) {
-            acc[platform] = 0;
-        }
-        acc[platform] += exp.amount;
-        return acc;
-    }, {} as PlatformSummaryData);
+  const platformSummary: PlatformSummaryData = useMemo(() => {
+    const expensesByPlatform: { [key: string]: DisplayExpense[] } = {};
+
+    for (const exp of expenses) {
+      if (exp.skipped) continue;
+      if (!expensesByPlatform[exp.platform]) {
+        expensesByPlatform[exp.platform] = [];
+      }
+      expensesByPlatform[exp.platform].push(exp);
+    }
+
+    const summary: PlatformSummaryData = {};
+    for (const platform in expensesByPlatform) {
+      const platformExpenses = expensesByPlatform[platform];
+      const totalAmount = platformExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const allCompleted = platformExpenses.every(exp => exp.completed);
+      summary[platform] = { amount: totalAmount, allCompleted };
+    }
+    
+    return summary;
+  }, [expenses]);
 
 
   return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth, navigateMonth, sortExpenses, sortOption };

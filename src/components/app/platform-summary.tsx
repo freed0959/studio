@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import type { PlatformSummaryData } from "@/lib/types";
 import { Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 
 type PlatformSummaryProps = {
   platformSummary: PlatformSummaryData;
 };
 
 export function PlatformSummary({ platformSummary }: PlatformSummaryProps) {
-  const platforms = Object.entries(platformSummary).sort(([, a], [, b]) => b - a);
+  const platforms = Object.entries(platformSummary).sort(([, a], [, b]) => b.amount - a.amount);
 
   if (platforms.length === 0) {
     return null;
@@ -26,11 +28,17 @@ export function PlatformSummary({ platformSummary }: PlatformSummaryProps) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-          {platforms.map(([platform, amount]) => (
+          {platforms.map(([platform, summary]) => (
             <div key={platform}>
-              <p className="text-sm text-muted-foreground">{platform}</p>
-              <p className="text-md font-bold text-foreground">
-                {formatCurrency(amount)}
+              <p className={cn(
+                "text-sm text-muted-foreground transition-all",
+                summary.allCompleted && "line-through"
+              )}>{platform}</p>
+              <p className={cn(
+                "text-md font-bold text-foreground transition-all",
+                summary.allCompleted && "line-through text-muted-foreground"
+              )}>
+                {formatCurrency(summary.amount)}
               </p>
             </div>
           ))}

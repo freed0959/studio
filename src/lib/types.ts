@@ -31,8 +31,13 @@ export type ExpenseSummary = {
   remaining: number;
 }
 
+export type PlatformSummaryItem = {
+  amount: number;
+  allCompleted: boolean;
+};
+
 export type PlatformSummaryData = {
-  [platform: string]: number;
+  [platform: string]: PlatformSummaryItem;
 }
 
 export type Platform = {
