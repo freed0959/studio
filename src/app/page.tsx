@@ -14,9 +14,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
-import type { DisplayExpense, SortOption } from '@/lib/types';
-import { formatCurrency, getCycleDateRange } from '@/lib/utils';
+import type { DisplayExpense, SortOption, MasterExpense, Platform } from '@/lib/types';
+import { getCycleDateRange } from '@/lib/utils';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+
+const MASTER_KEY = 'rutin-tracker-master';
+const PLATFORMS_KEY = 'rutin-tracker-platforms';
 
 export default function Home() {
   const { 
@@ -39,6 +43,7 @@ export default function Home() {
   
   const [formState, setFormState] = useState<{isOpen: boolean, mode: 'add' | 'edit', expense?: DisplayExpense}>({ isOpen: false, mode: 'add' });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleOpenAdd = () => {
     setFormState({ isOpen: true, mode: 'add' });
@@ -78,6 +83,102 @@ export default function Home() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  const handleExportSettings = () => {
+    try {
+      const masterData = localStorage.getItem(MASTER_KEY);
+      const platformData = localStorage.getItem(PLATFORMS_KEY);
+
+      if (!masterData || !platformData) {
+        toast({
+          variant: "destructive",
+          title: "Gagal Ekspor",
+          description: "Tidak ada data untuk diekspor."
+        });
+        return;
+      }
+
+      const settings = {
+        masterExpenses: JSON.parse(masterData),
+        platforms: JSON.parse(platformData),
+        exportDate: new Date().toISOString(),
+      };
+
+      const jsonString = JSON.stringify(settings, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", "biaya-rt-settings.json");
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Ekspor Berhasil",
+        description: "File setelan Anda telah diunduh."
+      });
+
+    } catch(error) {
+      console.error("Export failed", error);
+      toast({
+          variant: "destructive",
+          title: "Ekspor Gagal",
+          description: "Terjadi kesalahan saat mengekspor data."
+      });
+    }
+  }
+
+  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') throw new Error("File could not be read");
+
+        const settings = JSON.parse(text);
+
+        // Basic validation
+        if (!settings.masterExpenses || !settings.platforms) {
+          throw new Error("Invalid settings file format.");
+        }
+        
+        // More specific validation could go here (e.g. using zod)
+        // For now, we trust the structure.
+
+        localStorage.setItem(MASTER_KEY, JSON.stringify(settings.masterExpenses));
+        localStorage.setItem(PLATFORMS_KEY, JSON.stringify(settings.platforms));
+
+        toast({
+          title: "Impor Berhasil",
+          description: "Setelan Anda telah dipulihkan. Aplikasi akan dimuat ulang.",
+        });
+
+        // Reload the page to apply changes
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+
+      } catch (error) {
+        console.error("Import failed", error);
+        toast({
+          variant: "destructive",
+          title: "Impor Gagal",
+          description: error instanceof Error ? error.message : "File yang dipilih tidak valid.",
+        });
+      } finally {
+        // Reset file input
+        if(event.target) {
+            event.target.value = '';
+        }
+      }
+    };
+    reader.readAsText(file);
   }
 
   if (loading || platformsLoading) {
@@ -133,6 +234,8 @@ export default function Home() {
           onAddPlatform={addPlatform}
           onUpdatePlatform={updatePlatform}
           onDeletePlatform={deletePlatform}
+          onExportSettings={handleExportSettings}
+          onImportSettings={handleImportSettings}
         />
 
         {expenses.length > 0 ? (
