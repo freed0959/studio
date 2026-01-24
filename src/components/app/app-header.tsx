@@ -42,6 +42,10 @@ export function AppHeader({ onOpenSettings, currentMonth, onNavigate, onExport }
         </div>
       </div>
       <div className="flex items-center gap-1">
+        <Button onClick={() => onNavigate('next')} variant="ghost" size="icon" className="shrink-0">
+          <Plus className="h-5 w-5" />
+          <span className="sr-only">Mulai Periode Baru</span>
+        </Button>
         <Button onClick={onExport} variant="ghost" size="icon" className="shrink-0">
           <Download className="h-5 w-5" />
           <span className="sr-only">Ekspor</span>
