@@ -17,16 +17,11 @@ const initialMasterData: MasterExpense[] = [
 ];
 
 const getCurrentCycleMonth = () => {
-    // We use local date parts to avoid timezone issues with `new Date()` and `toISOString()`
     const today = new Date();
     const year = today.getFullYear();
-    const month = today.getMonth(); // 0-indexed
+    const month = today.getMonth();
     const day = today.getDate();
 
-    // If today is before the 25th, we are in the cycle of the current month name.
-    // e.g. Oct 25 to Nov 24 is the "November" cycle (Month 11).
-    // If it's Nov 1-24, cycle is '2023-11'.
-    // If it's Oct 25-31, cycle is also '2023-11'.
     const dateForCycle = day < 25 ? new Date(year, month) : addMonths(new Date(year, month), 1);
     return format(dateForCycle, 'yyyy-MM');
 };
@@ -119,7 +114,7 @@ export const useExpenses = () => {
   
   const navigateMonth = useCallback((direction: 'next' | 'prev') => {
     setCurrentMonth(prevMonth => {
-      const date = new Date(`${prevMonth}-15`); // Use mid-month to avoid timezone issues
+      const date = new Date(`${prevMonth}-15`);
       const newDate = direction === 'next' ? addMonths(date, 1) : subMonths(date, 1);
       return format(newDate, 'yyyy-MM');
     });
@@ -208,7 +203,6 @@ export const useExpenses = () => {
     });
   }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast]);
 
-  // Sync master and monthly data if there is a mismatch
   useEffect(() => {
     if (loading || !monthlyData || !masterExpenses.length) return;
 
@@ -218,7 +212,6 @@ export const useExpenses = () => {
     let needsUpdate = false;
     let newMonthlyExpenses = [...monthlyData.expenses];
 
-    // Add new master expenses to monthly for the current month
     for (const masterExp of masterExpenses) {
       if (!monthlyIds.has(masterExp.id)) {
         const { recurrence } = masterExp;
@@ -235,7 +228,6 @@ export const useExpenses = () => {
       }
     }
 
-    // Remove deleted master expenses from monthly for the current month
     const filteredMonthlyExpenses = newMonthlyExpenses.filter(exp => masterIds.has(exp.id));
     if (filteredMonthlyExpenses.length !== newMonthlyExpenses.length) {
       needsUpdate = true;
@@ -257,7 +249,7 @@ export const useExpenses = () => {
         if (recurrence.type === 'specific') {
             return recurrence.months.includes(currentCycleMonthNumber);
         }
-        return true; // 'monthly' expenses always included
+        return true;
     })
     .map(masterExp => {
       const monthlyState = monthlyData?.expenses.find(m => m.id === masterExp.id);
@@ -303,9 +295,13 @@ export const useExpenses = () => {
     const summary: PlatformSummaryData = {};
     for (const platform in expensesByPlatform) {
       const platformExpenses = expensesByPlatform[platform];
-      const totalAmount = platformExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      // Hanya hitung jumlah pengeluaran yang belum selesai (completed === false)
+      const uncompletedAmount = platformExpenses
+        .filter(exp => !exp.completed)
+        .reduce((sum, exp) => sum + exp.amount, 0);
+      
       const allCompleted = platformExpenses.every(exp => exp.completed);
-      summary[platform] = { amount: totalAmount, allCompleted };
+      summary[platform] = { amount: uncompletedAmount, allCompleted };
     }
     
     return summary;
