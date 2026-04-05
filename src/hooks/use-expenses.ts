@@ -262,6 +262,8 @@ export const useExpenses = () => {
           return a.name.localeCompare(b.name);
         case 'amount':
           return b.amount - a.amount;
+        case 'platform':
+          return a.platform.localeCompare(b.platform);
         case 'dueDate':
         default:
           const getSortableDate = (date: number) => (date >= 25 ? date - 25 : date + 7);

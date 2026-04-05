@@ -45,4 +45,4 @@ export type Platform = {
   name: string;
 }
 
-export type SortOption = 'dueDate' | 'name' | 'amount';
+export type SortOption = 'dueDate' | 'name' | 'amount' | 'platform';

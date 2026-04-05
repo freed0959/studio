@@ -27,7 +27,8 @@ type ExpenseListProps = {
 const sortLabels: Record<SortOption, string> = {
   dueDate: 'Tanggal',
   name: 'Nama',
-  amount: 'Jumlah'
+  amount: 'Jumlah',
+  platform: 'Platform'
 };
 
 
@@ -57,6 +58,7 @@ export function ExpenseList({ expenses, currentMonth, sortOption, onSortChange, 
                   <DropdownMenuRadioItem value="dueDate">Tanggal</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="name">Nama</DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="amount">Jumlah</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="platform">Platform</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
