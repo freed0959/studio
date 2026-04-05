@@ -11,10 +11,18 @@ import { ExpenseForm } from '@/components/app/expense-form';
 import { PlatformSettings } from '@/components/app/platform-settings';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
-import type { DisplayExpense, SortOption } from '@/lib/types';
+import { ExpenseCalendar } from '@/components/app/expense-calendar';
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselNext, 
+  CarouselPrevious 
+} from '@/components/ui/carousel';
+import type { DisplayExpense } from '@/lib/types';
 import { getCycleDateRange } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -144,13 +152,11 @@ export default function Home() {
 
         const settings = JSON.parse(text);
 
-        // Validation logic
         if (!settings || typeof settings !== 'object') throw new Error("Format file tidak valid.");
         if (!Array.isArray(settings.masterExpenses) || !Array.isArray(settings.platforms)) {
           throw new Error("Struktur file backup tidak sesuai.");
         }
 
-        // Apply to localStorage
         localStorage.setItem(MASTER_KEY, JSON.stringify(settings.masterExpenses));
         localStorage.setItem(PLATFORMS_KEY, JSON.stringify(settings.platforms));
 
@@ -159,7 +165,6 @@ export default function Home() {
           description: "Data Anda telah dipulihkan. Halaman akan dimuat ulang.",
         });
 
-        // Delay reload to let user see toast
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -184,7 +189,6 @@ export default function Home() {
 
     reader.readAsText(file);
     
-    // Reset file input so same file can be selected again
     if (event.target) {
       event.target.value = '';
     }
@@ -250,7 +254,24 @@ export default function Home() {
         {expenses.length > 0 ? (
           <>
             <ProgressSummary summary={summary} />
-            <PlatformSummary platformSummary={platformSummary} />
+            
+            <Card className="mb-6 shadow-sm overflow-hidden">
+              <Carousel className="w-full">
+                <CarouselContent className="ml-0">
+                  <CarouselItem className="pl-0 p-4 min-h-[220px]">
+                    <PlatformSummary platformSummary={platformSummary} />
+                  </CarouselItem>
+                  <CarouselItem className="pl-0 p-4 min-h-[220px]">
+                    <ExpenseCalendar expenses={expenses} currentMonth={currentMonth} />
+                  </CarouselItem>
+                </CarouselContent>
+                <div className="flex justify-center gap-2 pb-4">
+                   <CarouselPrevious className="static translate-y-0 h-8 w-8" />
+                   <CarouselNext className="static translate-y-0 h-8 w-8" />
+                </div>
+              </Carousel>
+            </Card>
+
             <ExpenseList 
               expenses={expenses}
               currentMonth={currentMonth}
