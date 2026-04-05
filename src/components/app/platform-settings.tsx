@@ -22,7 +22,7 @@ import {
   FormMessage 
 } from "@/components/ui/form";
 import type { Platform } from "@/lib/types";
-import { Pencil, Trash2, Plus, X, Upload, Download } from "lucide-react";
+import { Pencil, Trash2, Plus, Upload, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,26 +111,29 @@ export function PlatformSettings({
           </DialogHeader>
           
           <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-sm mb-2">Impor & Ekspor Data</h4>
-                 <div className="grid grid-cols-2 gap-2">
-                    <Button onClick={onExportSettings} variant="outline">
-                        <Download className="mr-2 h-4 w-4" />
-                        Ekspor Setelan
-                    </Button>
-                     <Button onClick={handleImportClick} variant="outline">
-                        <Upload className="mr-2 h-4 w-4" />
-                        Impor Setelan
-                    </Button>
-                    <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept=".json"
-                        onChange={onImportSettings}
-                    />
-                 </div>
+            <div>
+              <h4 className="font-medium text-sm mb-2">Impor & Ekspor Data</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={onExportSettings} variant="outline" className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Ekspor Backup
+                </Button>
+                <Button onClick={handleImportClick} variant="outline" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Impor Backup
+                </Button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".json"
+                  onChange={onImportSettings}
+                />
               </div>
+              <p className="text-[10px] text-muted-foreground mt-2">
+                * Ekspor akan mengunduh file .json berisi semua daftar rutin dan platform Anda.
+              </p>
+            </div>
             
             <Separator />
             
@@ -140,12 +143,14 @@ export function PlatformSettings({
                 {platforms.map((platform) => (
                   <div key={platform.id} className="flex items-center gap-2 p-2 rounded-md bg-secondary/50">
                     <p className="flex-1 font-medium text-sm">{platform.name}</p>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(platform)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteCandidate(platform)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(platform)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleteCandidate(platform)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
 
@@ -170,15 +175,14 @@ export function PlatformSettings({
                   </Form>
                 )}
               </div>
-                {!editingPlatform && (
-                     <Button onClick={handleAddNew} variant="outline" className="w-full mt-3">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Tambah Platform Baru
-                    </Button>
-                 )}
+              {!editingPlatform && (
+                <Button onClick={handleAddNew} variant="outline" className="w-full mt-3">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Platform Baru
+                </Button>
+              )}
             </div>
           </div>
-
 
           <DialogFooter className="border-t pt-4">
             <Button onClick={() => onOpenChange(false)} variant="secondary" className="w-full">Tutup</Button>

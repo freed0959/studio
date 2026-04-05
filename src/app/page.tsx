@@ -14,7 +14,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PlatformSummary } from '@/components/app/platform-summary';
-import type { DisplayExpense, SortOption, MasterExpense, Platform } from '@/lib/types';
+import type { DisplayExpense, SortOption } from '@/lib/types';
 import { getCycleDateRange } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -90,27 +90,28 @@ export default function Home() {
       const masterData = localStorage.getItem(MASTER_KEY);
       const platformData = localStorage.getItem(PLATFORMS_KEY);
 
-      if (!masterData || !platformData) {
+      const settings = {
+        masterExpenses: masterData ? JSON.parse(masterData) : [],
+        platforms: platformData ? JSON.parse(platformData) : [],
+        version: "1.0",
+        exportDate: new Date().toISOString(),
+      };
+
+      if (settings.masterExpenses.length === 0 && settings.platforms.length === 0) {
         toast({
           variant: "destructive",
-          title: "Gagal Ekspor",
+          title: "Ekspor Gagal",
           description: "Tidak ada data untuk diekspor."
         });
         return;
       }
-
-      const settings = {
-        masterExpenses: JSON.parse(masterData),
-        platforms: JSON.parse(platformData),
-        exportDate: new Date().toISOString(),
-      };
 
       const jsonString = JSON.stringify(settings, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", "biaya-rt-settings.json");
+      link.setAttribute("download", `biaya-rt-backup-${format(new Date(), 'yyyyMMdd')}.json`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -118,7 +119,7 @@ export default function Home() {
       
       toast({
         title: "Ekspor Berhasil",
-        description: "File setelan Anda telah diunduh."
+        description: "File cadangan setelan Anda telah diunduh."
       });
 
     } catch(error) {
@@ -139,29 +140,28 @@ export default function Home() {
     reader.onload = (e) => {
       try {
         const text = e.target?.result;
-        if (typeof text !== 'string') throw new Error("File could not be read");
+        if (typeof text !== 'string') throw new Error("File tidak dapat dibaca.");
 
         const settings = JSON.parse(text);
 
-        // Basic validation
-        if (!settings.masterExpenses || !settings.platforms) {
-          throw new Error("Invalid settings file format.");
+        // Validation logic
+        if (!settings || typeof settings !== 'object') throw new Error("Format file tidak valid.");
+        if (!Array.isArray(settings.masterExpenses) || !Array.isArray(settings.platforms)) {
+          throw new Error("Struktur file backup tidak sesuai.");
         }
-        
-        // More specific validation could go here (e.g. using zod)
-        // For now, we trust the structure.
 
+        // Apply to localStorage
         localStorage.setItem(MASTER_KEY, JSON.stringify(settings.masterExpenses));
         localStorage.setItem(PLATFORMS_KEY, JSON.stringify(settings.platforms));
 
         toast({
           title: "Impor Berhasil",
-          description: "Setelan Anda telah dipulihkan. Aplikasi akan dimuat ulang.",
+          description: "Data Anda telah dipulihkan. Halaman akan dimuat ulang.",
         });
 
-        // Reload the page to apply changes
+        // Delay reload to let user see toast
         setTimeout(() => {
-            window.location.reload();
+          window.location.reload();
         }, 1500);
 
       } catch (error) {
@@ -169,16 +169,25 @@ export default function Home() {
         toast({
           variant: "destructive",
           title: "Impor Gagal",
-          description: error instanceof Error ? error.message : "File yang dipilih tidak valid.",
+          description: error instanceof Error ? error.message : "Terjadi kesalahan saat mengimpor file.",
         });
-      } finally {
-        // Reset file input
-        if(event.target) {
-            event.target.value = '';
-        }
       }
     };
+
+    reader.onerror = () => {
+      toast({
+        variant: "destructive",
+        title: "Kesalahan File",
+        description: "Gagal membaca file yang dipilih."
+      });
+    };
+
     reader.readAsText(file);
+    
+    // Reset file input so same file can be selected again
+    if (event.target) {
+      event.target.value = '';
+    }
   }
 
   if (loading || platformsLoading) {
