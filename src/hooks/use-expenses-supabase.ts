@@ -1,0 +1,334 @@
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { addMonths, subMonths, format, getMonth, startOfToday } from 'date-fns';
+import { MasterExpense, MonthlyData, DisplayExpense, ExpenseSummary, MonthlyExpenseState, PlatformSummaryData, Recurrence, SortOption } from '@/lib/types';
+import { useToast } from './use-toast';
+import { getCycleDateRange } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
+
+const getCurrentCycleMonth = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const day = today.getDate();
+
+    const dateForCycle = day < 25 ? new Date(year, month) : addMonths(new Date(year, month), 1);
+    return format(dateForCycle, 'yyyy-MM');
+};
+
+export const useExpensesSuapabase = () => {
+  const [masterExpenses, setMasterExpenses] = useState<MasterExpense[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState<string>(getCurrentCycleMonth);
+  const [sortOption, setSortOption] = useState<SortOption>('dueDate');
+  const { toast } = useToast();
+  const supabase = createClient();
+
+  const { end: cycleEndDate } = useMemo(() => getCycleDateRange(currentMonth), [currentMonth]);
+  const currentCycleMonthNumber = useMemo(() => getMonth(cycleEndDate) + 1, [cycleEndDate]);
+
+  // Load expenses from Supabase
+  useEffect(() => {
+    const loadExpenses = async () => {
+      setLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setMasterExpenses([]);
+          setMonthlyData(null);
+          return;
+        }
+
+        // Load master expenses
+        const { data: expenses, error: expensesError } = await supabase
+          .from('master_expenses')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (expensesError) throw expensesError;
+
+        const loadedExpenses: MasterExpense[] = (expenses || []).map(exp => ({
+          id: exp.id,
+          name: exp.name,
+          amount: exp.amount,
+          platform: exp.platform,
+          dueDate: exp.due_date,
+          recurrence: exp.recurrence,
+        }));
+
+        setMasterExpenses(loadedExpenses);
+
+        // Load monthly data for current month
+        const { data: monthlyState, error: monthlyError } = await supabase
+          .from('monthly_expense_states')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('month', currentMonth)
+          .single();
+
+        if (monthlyError && monthlyError.code !== 'PGRST116') throw monthlyError;
+
+        if (monthlyState) {
+          setMonthlyData({
+            month: monthlyState.month,
+            expenses: monthlyState.expense_states,
+          });
+        } else {
+          // Create initial monthly state for current month
+          const newMonthlyData: MonthlyData = {
+            month: currentMonth,
+            expenses: loadedExpenses.map((exp: MasterExpense) => ({
+              id: exp.id,
+              completed: false,
+              skipped: false,
+            })),
+          };
+          
+          const { error: createError } = await supabase
+            .from('monthly_expense_states')
+            .insert({
+              user_id: user.id,
+              month: currentMonth,
+              expense_states: newMonthlyData.expenses,
+            });
+
+          if (createError) throw createError;
+          setMonthlyData(newMonthlyData);
+        }
+      } catch (error) {
+        console.error("Failed to load expenses from Supabase:", error);
+        toast({
+          variant: "destructive",
+          title: "Gagal Memuat Data",
+          description: "Tidak dapat memuat data pengeluaran dari database.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExpenses();
+  }, [currentMonth, toast]);
+
+  const updateMasterAndSave = useCallback(async (newMaster: MasterExpense[]) => {
+    setMasterExpenses(newMaster);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Update each expense in Supabase
+      for (const expense of newMaster) {
+        const { error } = await supabase
+          .from('master_expenses')
+          .upsert({
+            id: expense.id,
+            user_id: user.id,
+            name: expense.name,
+            amount: expense.amount,
+            platform: expense.platform,
+            due_date: expense.dueDate,
+            recurrence: expense.recurrence,
+          });
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error("Failed to save expenses to Supabase:", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal Menyimpan",
+        description: "Tidak dapat menyimpan perubahan pengeluaran.",
+      });
+    }
+  }, [supabase, toast]);
+
+  const updateMonthlyAndSave = useCallback(async (newMonthly: MonthlyData) => {
+    setMonthlyData(newMonthly);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('monthly_expense_states')
+        .upsert({
+          user_id: user.id,
+          month: newMonthly.month,
+          expense_states: newMonthly.expenses,
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error("Failed to save monthly data to Supabase:", error);
+      toast({
+        variant: "destructive",
+        title: "Gagal Menyimpan",
+        description: "Tidak dapat menyimpan status pengeluaran.",
+      });
+    }
+  }, [supabase, toast]);
+
+  const navigateMonth = useCallback((direction: 'next' | 'prev') => {
+    setCurrentMonth(prevMonth => {
+      const date = new Date(`${prevMonth}-15`);
+      const newDate = direction === 'next' ? addMonths(date, 1) : subMonths(date, 1);
+      return format(newDate, 'yyyy-MM');
+    });
+  }, []);
+
+  const addExpense = useCallback((name: string, amount: number, platform: string, dueDate: number, recurrence: Recurrence) => {
+    const newExpense: MasterExpense = { id: Date.now().toString(), name, amount, platform, dueDate, recurrence };
+    const newMaster = [...masterExpenses, newExpense];
+    updateMasterAndSave(newMaster);
+
+    const shouldAppearThisMonth = recurrence.type === 'monthly' || (recurrence.type === 'specific' && recurrence.months.includes(currentCycleMonthNumber));
+
+    if (monthlyData && shouldAppearThisMonth) {
+      const newMonthlyState: MonthlyExpenseState = { id: newExpense.id, completed: false, skipped: false };
+      const newMonthlyData: MonthlyData = {
+        ...monthlyData,
+        expenses: [...monthlyData.expenses, newMonthlyState],
+      };
+      updateMonthlyAndSave(newMonthlyData);
+    }
+    toast({
+        title: "Sukses!",
+        description: `Pengeluaran "${name}" telah ditambahkan.`,
+    });
+  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast, currentCycleMonthNumber]);
+
+  const updateExpense = useCallback((id: string, updatedData: Partial<Omit<MasterExpense, 'id'>>) => {
+    let updatedName = '';
+    const newMaster = masterExpenses.map(exp => {
+        if (exp.id === id) {
+            const updated = { ...exp, ...updatedData };
+            updatedName = updated.name;
+            return updated;
+        }
+        return exp;
+    });
+    updateMasterAndSave(newMaster);
+    toast({
+        title: "Sukses!",
+        description: `Pengeluaran "${updatedName}" telah diperbarui.`,
+    });
+  }, [masterExpenses, updateMasterAndSave, toast]);
+
+  const toggleComplete = useCallback((id: string) => {
+    if (!monthlyData) return;
+    const newMonthlyData = {
+      ...monthlyData,
+      expenses: monthlyData.expenses.map(e => e.id === id ? { ...e, completed: !e.completed } : e),
+    };
+    updateMonthlyAndSave(newMonthlyData);
+  }, [monthlyData, updateMonthlyAndSave]);
+
+  const skipForMonth = useCallback((id: string) => {
+    if (!monthlyData) return;
+    const newMonthlyData = {
+      ...monthlyData,
+      expenses: monthlyData.expenses.map(e => e.id === id ? { ...e, skipped: true } : e),
+    };
+    updateMonthlyAndSave(newMonthlyData);
+    const expense = masterExpenses.find(e => e.id === id);
+    toast({
+        title: "Pengeluaran Dilewati",
+        description: `"${expense?.name}" tidak akan ditampilkan untuk periode ini.`,
+        variant: "default",
+    });
+  }, [monthlyData, masterExpenses, updateMonthlyAndSave, toast]);
+  
+  const deletePermanently = useCallback((id: string) => {
+    const expenseToDelete = masterExpenses.find(e => e.id === id);
+    if(!expenseToDelete) return;
+
+    const newMaster = masterExpenses.filter(e => e.id !== id);
+    updateMasterAndSave(newMaster);
+
+    if (monthlyData) {
+      const newMonthlyData = {
+        ...monthlyData,
+        expenses: monthlyData.expenses.filter(e => e.id !== id),
+      };
+      updateMonthlyAndSave(newMonthlyData);
+    }
+    toast({
+        title: "Pengeluaran Dihapus",
+        description: `"${expenseToDelete.name}" telah dihapus secara permanen.`,
+        variant: "destructive",
+    });
+  }, [masterExpenses, monthlyData, updateMasterAndSave, updateMonthlyAndSave, toast]);
+
+  const sortExpenses = useCallback((option: SortOption) => {
+    setSortOption(option);
+  }, []);
+
+  const expenses: DisplayExpense[] = useMemo(() => masterExpenses
+    .filter(masterExp => {
+        const { recurrence } = masterExp;
+        if (recurrence.type === 'specific') {
+            return recurrence.months.includes(currentCycleMonthNumber);
+        }
+        return true;
+    })
+    .map(masterExp => {
+      const monthlyState = monthlyData?.expenses.find(m => m.id === masterExp.id);
+      return { ...masterExp, ...monthlyState };
+    })
+    .filter((exp): exp is DisplayExpense => exp.id !== undefined && exp.completed !== undefined && exp.skipped !== undefined)
+    .sort((a, b) => {
+      switch (sortOption) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'amount':
+          return b.amount - a.amount;
+        case 'platform':
+          return a.platform.localeCompare(b.platform);
+        case 'dueDate':
+        default:
+          const getSortableDate = (date: number) => (date >= 25 ? date - 25 : date + 7);
+          return getSortableDate(a.dueDate) - getSortableDate(b.dueDate);
+      }
+    }), [masterExpenses, monthlyData, currentCycleMonthNumber, sortOption]);
+
+  const summary: ExpenseSummary = expenses.reduce((acc, exp) => {
+    if (exp.skipped) return acc;
+    acc.total += exp.amount;
+    if (exp.completed) {
+      acc.completedAmount += exp.amount;
+    }
+    return acc;
+  }, { total: 0, completedAmount: 0, progress: 0, remaining: 0 });
+
+  summary.progress = summary.total > 0 ? (summary.completedAmount / summary.total) * 100 : 0;
+  summary.remaining = summary.total - summary.completedAmount;
+
+  const platformSummary: PlatformSummaryData = useMemo(() => {
+    const expensesByPlatform: { [key: string]: DisplayExpense[] } = {};
+
+    for (const exp of expenses) {
+      if (exp.skipped) continue;
+      if (!expensesByPlatform[exp.platform]) {
+        expensesByPlatform[exp.platform] = [];
+      }
+      expensesByPlatform[exp.platform].push(exp);
+    }
+
+    const summary: PlatformSummaryData = {};
+    for (const platform in expensesByPlatform) {
+      const platformExpenses = expensesByPlatform[platform];
+      const uncompletedAmount = platformExpenses
+        .filter(exp => !exp.completed)
+        .reduce((sum, exp) => sum + exp.amount, 0);
+      
+      const allCompleted = platformExpenses.every(exp => exp.completed);
+      summary[platform] = { amount: uncompletedAmount, allCompleted };
+    }
+    
+    return summary;
+  }, [expenses]);
+
+  return { expenses, summary, platformSummary, addExpense, updateExpense, toggleComplete, skipForMonth, deletePermanently, loading, currentMonth, navigateMonth, sortExpenses, sortOption };
+};
